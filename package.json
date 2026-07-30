@@ -1,0 +1,21 @@
+{
+  "name": "com.raxy.narrative",
+  "version": "1.0.0",
+  "displayName": "RAXY Narrative",
+  "author": {
+    "name": "RobyRAX",
+    "url": "https://github.com/RobyRAX"
+  },
+  "dependencies": {
+    "com.raxy.event": "1.0.0",
+    "com.raxy.ui": "1.0.0",
+    "com.raxy.utility": "1.0.0",
+    "com.raxy.utility.localization": "1.0.0",
+    "com.raxy.core": "1.0.0",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.unity.addressables": "3.1.0",
+    "com.unity.timeline": "1.8.12",
+    "com.unity.ugui": "2.0.0",
+    "com.unity.cinemachine": "3.1.7"
+  }
+}
