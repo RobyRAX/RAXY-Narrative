@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db7193e37cf4d6f49b45a42e1515b0c0, type: 3}
+  m_Name: Shiroko
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueActorSO
+  actorId: shiroko
+  useSoNameAsId: 0
+  actorNameProvider:
+    useLocalization: 0
+    directString: Shiroko
+    stringLoc:
+      localizedString:
+        m_TableReference:
+          m_TableCollectionName: 
+        m_TableEntryReference:
+          m_KeyId: 0
+          m_Key: 
+        m_FallbackState: 0
+        m_WaitForCompletion: 0
+        m_LocalVariables: []
+  portraitPrefabProvider:
+    useAddressable: 0
+    directAsset: {fileID: 2000579851052950478, guid: d92b9e936dd295f41bcde188b8895151, type: 3}
+    assetReference:
+      m_AssetGUID: 
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
+  fullScreenPortraitParts:
+  - partId: base
+    portraitEntries:
+    - portraitId: Shiroko_Base
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: a289006497639644a9946ee2755064d4, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+  - partId: face
+    portraitEntries:
+    - portraitId: Shiroko_Face_1
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: 274f7b76b97f66e4cbc436865144b21d, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+    - portraitId: Shiroko_Face_2
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: d547b42c4f715274d9bfdd3382fbc21e, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+    - portraitId: Shiroko_Face_3
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: 15db60ac248c3cf46afa77f73a08f481, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+  fullScreenPortraitSizes:
+  - yPos: 0
+    portraitScale: 1
+  - yPos: -300
+    portraitScale: 1.25
+  - yPos: -550
+    portraitScale: 1.5
+  banterPortraits:
+  - portraitId: default_Shiroko
+    spriteProvider:
+      useAddressable: 0
+      directAsset: {fileID: 21300000, guid: a509d98af81d211438aad3c84ca1710d, type: 3}
+      assetReference:
+        m_AssetGUID: 
+        m_SubObjectName: 
+        m_SubObjectType: 
+        m_SubObjectGUID: 
+        m_EditorAssetChanged: 0
+  references:
+    version: 2
+    RefIds: []

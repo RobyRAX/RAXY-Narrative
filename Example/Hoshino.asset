@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db7193e37cf4d6f49b45a42e1515b0c0, type: 3}
+  m_Name: Hoshino
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueActorSO
+  actorId: hoshino
+  useSoNameAsId: 0
+  actorNameProvider:
+    useLocalization: 0
+    directString: Hoshino
+    stringLoc:
+      localizedString:
+        m_TableReference:
+          m_TableCollectionName: 
+        m_TableEntryReference:
+          m_KeyId: 0
+          m_Key: 
+        m_FallbackState: 0
+        m_WaitForCompletion: 0
+        m_LocalVariables: []
+  portraitPrefabProvider:
+    useAddressable: 0
+    directAsset: {fileID: 2000579851052950478, guid: d0e19cee3f0d7044ab82b5e520a10d73, type: 3}
+    assetReference:
+      m_AssetGUID: 
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
+  fullScreenPortraitParts:
+  - partId: base
+    portraitEntries:
+    - portraitId: Hoshino_Base
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: d27adba2a7c042c4896d63872db19aeb, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+  - partId: face
+    portraitEntries:
+    - portraitId: Hoshino_Face_1
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: 4e48c6dbd837ea8458bbfd6a15b7f65c, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+    - portraitId: Hoshino_Face_2
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: 3db27068e6cd8c64190ac79d0e1001df, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+    - portraitId: Hoshino_Face_3
+      spriteProvider:
+        useAddressable: 0
+        directAsset: {fileID: 21300000, guid: 01ae5411b9b336445a177e2c6b585753, type: 3}
+        assetReference:
+          m_AssetGUID: 
+          m_SubObjectName: 
+          m_SubObjectType: 
+          m_SubObjectGUID: 
+          m_EditorAssetChanged: 0
+  banterPortraits:
+  - portraitId: default_Hoshino
+    spriteProvider:
+      useAddressable: 0
+      directAsset: {fileID: 21300000, guid: 0ca348a1d19bc384498b8993075ea591, type: 3}
+      assetReference:
+        m_AssetGUID: 
+        m_SubObjectName: 
+        m_SubObjectType: 
+        m_SubObjectGUID: 
+        m_EditorAssetChanged: 0
+  - portraitId: cry
+    spriteProvider:
+      useAddressable: 0
+      directAsset: {fileID: 21300000, guid: 4e48c6dbd837ea8458bbfd6a15b7f65c, type: 3}
+      assetReference:
+        m_AssetGUID: 
+        m_SubObjectName: 
+        m_SubObjectType: 
+        m_SubObjectGUID: 
+        m_EditorAssetChanged: 0
+  references:
+    version: 2
+    RefIds: []
