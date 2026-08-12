@@ -4,6 +4,7 @@ using RAXY.Utility;
 using Sirenix.OdinInspector;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Playables;
 using UnityEngine.Timeline;
 
@@ -13,6 +14,20 @@ namespace RAXY.Narrative
     public class TimelineCutscene : MonoBehaviour
     {
         public PlayableDirector PlayableDirector { get; set; }
+
+        [TitleGroup("Lifecycle")]
+        [SerializeField]
+        [Tooltip("Destroy this GameObject when the cutscene completes. Default true (typical for prefab cutscenes).")]
+        bool destroyOnComplete = true;
+
+        public bool DestroyOnComplete => destroyOnComplete;
+
+        [TitleGroup("Unity Events")]
+        [FoldoutGroup("Unity Events/Events")]
+        public UnityEvent onStarted = new();
+
+        [FoldoutGroup("Unity Events/Events")]
+        public UnityEvent onEnded = new();
 
         [TitleGroup("Timelines")]
         [PropertyOrder(-2)]
@@ -144,6 +159,118 @@ namespace RAXY.Narrative
         [PropertyOrder(1)]
         [HideReferenceObjectPicker]
         readonly List<CutsceneDialogueClipStatus> dialogueClipStatuses = new List<CutsceneDialogueClipStatus>();
+
+#if UNITY_EDITOR
+        [TitleGroup("Editor Helper")]
+        [SerializeField]
+        List<GameObject> editorHelperPrefabs = new List<GameObject>();
+
+        [SerializeField, HideInInspector]
+        List<GameObject> editorHelperSpawned = new List<GameObject>();
+
+        [TitleGroup("Editor Helper")]
+        [HorizontalGroup("Editor Helper/Actions")]
+        [Button("Spawn")]
+        void SpawnEditorHelperPrefabs()
+        {
+            if (editorHelperPrefabs == null || editorHelperPrefabs.Count == 0)
+                return;
+
+            if (editorHelperSpawned == null)
+                editorHelperSpawned = new List<GameObject>();
+
+            for (int i = 0; i < editorHelperPrefabs.Count; i++)
+            {
+                var prefab = editorHelperPrefabs[i];
+                if (prefab == null)
+                    continue;
+
+                if (!UnityEditor.PrefabUtility.IsPartOfPrefabAsset(prefab))
+                {
+                    Debug.LogWarning(
+                        $"[TimelineCutscene] Editor Helper skip '{prefab.name}' — bukan prefab asset.",
+                        this);
+                    continue;
+                }
+
+                var instance = UnityEditor.PrefabUtility.InstantiatePrefab(prefab, transform) as GameObject;
+                if (instance == null)
+                    continue;
+
+                UnityEditor.Undo.RegisterCreatedObjectUndo(instance, "Spawn Editor Helper Prefab");
+                editorHelperSpawned.Add(instance);
+            }
+
+            TryBindEditorHelperSpawned();
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [TitleGroup("Editor Helper")]
+        [HorizontalGroup("Editor Helper/Actions")]
+        [Button("Destroy")]
+        void DestroyEditorHelperPrefabs()
+        {
+            if (editorHelperSpawned == null)
+                return;
+
+            for (int i = editorHelperSpawned.Count - 1; i >= 0; i--)
+            {
+                var go = editorHelperSpawned[i];
+                if (go != null)
+                    UnityEditor.Undo.DestroyObjectImmediate(go);
+            }
+
+            editorHelperSpawned.Clear();
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [TitleGroup("Editor Helper")]
+        [Button("Try Bind")]
+        void TryBindEditorHelperSpawned()
+        {
+            if (PlayableDirector == null)
+                PlayableDirector = this.GetOrAddComponent<PlayableDirector>();
+
+            if (PlayableDirector.playableAsset as TimelineAsset == null)
+            {
+                Debug.LogWarning(
+                    "[TimelineCutscene] Try Bind gagal — PlayableDirector belum punya TimelineAsset.",
+                    this);
+                return;
+            }
+
+            if (editorHelperSpawned == null || editorHelperSpawned.Count == 0)
+            {
+                Debug.LogWarning(
+                    "[TimelineCutscene] Try Bind gagal — belum ada object hasil Spawn.",
+                    this);
+                return;
+            }
+
+            var binders = new List<TimelineCutsceneTrackBinder>();
+            for (int i = 0; i < editorHelperSpawned.Count; i++)
+            {
+                var go = editorHelperSpawned[i];
+                if (go == null)
+                    continue;
+
+                binders.AddRange(go.GetComponentsInChildren<TimelineCutsceneTrackBinder>(true));
+            }
+
+            if (binders.Count == 0)
+            {
+                Debug.LogWarning(
+                    "[TimelineCutscene] Try Bind: spawned objects tidak punya TimelineCutsceneTrackBinder.",
+                    this);
+                return;
+            }
+
+            UnityEditor.Undo.RecordObject(PlayableDirector, "Try Bind Cutscene Tracks");
+            BindTrackBinders(binders);
+            UnityEditor.EditorUtility.SetDirty(PlayableDirector);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
 
         int playheadDirection = 1;
 
@@ -306,7 +433,7 @@ namespace RAXY.Narrative
             RefreshTrackBindings();
 
             PlayableDirector.timeUpdateMode = DirectorUpdateMode.Manual;
-            PlayableDirector.extrapolationMode = DirectorWrapMode.None;
+            PlayableDirector.extrapolationMode = DirectorWrapMode.Hold;
             PlayableDirector.time = 0;
         }
 
@@ -386,6 +513,7 @@ namespace RAXY.Narrative
         void Raise_OnStarted()
         {
             OnStarted?.Invoke(this);
+            onStarted?.Invoke();
             NarrativeHubManager.Instance?.NotifyTimelineCutsceneStart(this);
         }
 
@@ -395,7 +523,9 @@ namespace RAXY.Narrative
                 return;
 
             cutsceneEndRaised = true;
+            RestoreAllTrackBinderComponentToggles();
             OnEnded?.Invoke(this);
+            onEnded?.Invoke();
             NarrativeHubManager.Instance?.NotifyTimelineCutsceneEnd(this);
         }
 
@@ -412,6 +542,15 @@ namespace RAXY.Narrative
             if (PlayableDirector == null || Timeline == null)
                 return;
 
+            BindTrackBinders(FindObjectsByType<TimelineCutsceneTrackBinder>(FindObjectsSortMode.None));
+            ApplyAllTrackBinderComponentToggles();
+        }
+
+        void BindTrackBinders(IEnumerable<TimelineCutsceneTrackBinder> trackBinders)
+        {
+            if (PlayableDirector == null || Timeline == null || trackBinders == null)
+                return;
+
             var tracksByName = new Dictionary<string, TrackAsset>();
             foreach (var track in Timeline.GetOutputTracks())
             {
@@ -426,10 +565,9 @@ namespace RAXY.Narrative
                 tracksByName[track.name] = track;
             }
 
-            var trackBinders = FindObjectsByType<TimelineCutsceneTrackBinder>(FindObjectsSortMode.None);
             foreach (var binder in trackBinders)
             {
-                if (binder.trackBinds == null)
+                if (binder == null || binder.trackBinds == null)
                     continue;
 
                 foreach (var entry in binder.trackBinds)
@@ -467,7 +605,7 @@ namespace RAXY.Narrative
                             PlayableDirector.SetGenericBinding(track, binder.animator);
                             break;
 
-                        case TrackBindType.Cinemachine:
+                        case TrackBindType.CinemachineBrain:
                             if (track is not CinemachineTrack)
                             {
                                 Debug.LogWarning(
@@ -486,9 +624,43 @@ namespace RAXY.Narrative
 
                             PlayableDirector.SetGenericBinding(track, binder.cinemachineBrain);
                             break;
+
+                        case TrackBindType.ColorOverlayManager:
+                            if (track is not ColorOverlayTrack)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] Track '{entry.trackName}' bukan ColorOverlayTrack.",
+                                    binder);
+                                break;
+                            }
+
+                            if (binder.colorOverlayManager == null)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] TrackBinder untuk '{entry.trackName}' tidak punya ColorOverlayManager.",
+                                    binder);
+                                break;
+                            }
+
+                            PlayableDirector.SetGenericBinding(track, binder.colorOverlayManager);
+                            break;
                     }
                 }
             }
+        }
+
+        static void ApplyAllTrackBinderComponentToggles()
+        {
+            var binders = FindObjectsByType<TimelineCutsceneTrackBinder>(FindObjectsSortMode.None);
+            for (var i = 0; i < binders.Length; i++)
+                binders[i]?.ApplyComponentToggles();
+        }
+
+        public static void RestoreAllTrackBinderComponentToggles()
+        {
+            var binders = FindObjectsByType<TimelineCutsceneTrackBinder>(FindObjectsSortMode.None);
+            for (var i = 0; i < binders.Length; i++)
+                binders[i]?.RestoreComponentToggles();
         }
 
         void RefreshDialogueClipStatuses(bool resetPlayed = false)

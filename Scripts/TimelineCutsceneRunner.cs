@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Playables;
@@ -22,10 +23,11 @@ namespace RAXY.Narrative
         public event Action<TimelineCutscene> OnCutsceneEnd;
 
         TimelineCutscene _subscribedCutscene;
+        bool _ownsCurrentCutsceneInstance;
 
         void OnDisable()
         {
-            UnsubscribeCurrentCutscene();
+            CleanupCurrentCutscene(completed: false);
         }
 
         [TitleGroup("Debug Functions")]
@@ -41,7 +43,7 @@ namespace RAXY.Narrative
                 return;
             }
 
-            UnsubscribeCurrentCutscene();
+            CleanupCurrentCutscene(completed: false);
 
             CurrentCutscene = ResolveCutsceneInstance(cutscene);
             if (CurrentCutscene == null)
@@ -61,15 +63,18 @@ namespace RAXY.Narrative
                 CurrentCutscene.PlayFromStart();
         }
 
-        static TimelineCutscene ResolveCutsceneInstance(TimelineCutscene cutscene)
+        TimelineCutscene ResolveCutsceneInstance(TimelineCutscene cutscene)
         {
             // Scene instance: pakai langsung. Prefab/asset: Instantiate supaya Update jalan.
             if (cutscene.gameObject.scene.IsValid() && cutscene.gameObject.scene.isLoaded)
+            {
+                _ownsCurrentCutsceneInstance = false;
                 return cutscene;
+            }
 
             var temp = Instantiate(cutscene);
             temp.name = cutscene.name;
-
+            _ownsCurrentCutsceneInstance = true;
             return temp;
         }
 
@@ -100,10 +105,38 @@ namespace RAXY.Narrative
             _subscribedCutscene = null;
         }
 
+        void CleanupCurrentCutscene(bool completed)
+        {
+            UnsubscribeCurrentCutscene();
+
+            TimelineCutscene.RestoreAllTrackBinderComponentToggles();
+
+            if (CurrentCutscene != null)
+            {
+                if (CurrentCutscene.PlayableDirector != null)
+                    CurrentCutscene.PlayableDirector.Stop();
+
+                // Complete: honor DestroyOnComplete.
+                // Interrupt / disable: always destroy runner-spawned instances to avoid leaks.
+                var shouldDestroy = completed
+                    ? CurrentCutscene.DestroyOnComplete
+                    : _ownsCurrentCutsceneInstance;
+
+                if (shouldDestroy)
+                    Destroy(CurrentCutscene.gameObject);
+            }
+
+            CurrentCutscene = null;
+            _ownsCurrentCutsceneInstance = false;
+        }
+
         void HandleCutsceneStarted(TimelineCutscene cutscene)
             => OnCutsceneStart?.Invoke(cutscene);
 
         void HandleCutsceneEnded(TimelineCutscene cutscene)
-            => OnCutsceneEnd?.Invoke(cutscene);
+        {
+            OnCutsceneEnd?.Invoke(cutscene);
+            CleanupCurrentCutscene(completed: true);
+        }
     }
 }

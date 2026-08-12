@@ -6,9 +6,25 @@ using RAXY.Event;
 using RAXY.Utility;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace RAXY.Narrative
 {
+    [Serializable]
+    public class FullscreenDialogueUnityEvent : UnityEvent<FullscreenDialogueDataSO, string> { }
+
+    [Serializable]
+    public class BanterDialogueUnityEvent : UnityEvent<BanterDialogueDataSO> { }
+
+    [Serializable]
+    public class TimelineCutsceneUnityEvent : UnityEvent<TimelineCutscene> { }
+
+    [Serializable]
+    public class TimelineCutsceneNameUnityEvent : UnityEvent<string> { }
+
+    [Serializable]
+    public class DialogueChoiceUnityEvent : UnityEvent<int> { }
+
     public class NarrativeHubManager : Singleton<NarrativeHubManager>
     {
         [TitleGroup("Component")]
@@ -22,6 +38,34 @@ namespace RAXY.Narrative
 
         [TitleGroup("Component")]
         public TimelineCutsceneRunner TimelineCutsceneRunner;
+
+        [TitleGroup("Unity Events")]
+        [FoldoutGroup("Unity Events/Fullscreen Dialogue")]
+        public FullscreenDialogueUnityEvent onFullscreenDialogueStart = new();
+
+        [FoldoutGroup("Unity Events/Fullscreen Dialogue")]
+        public FullscreenDialogueUnityEvent onFullscreenDialogueEnd = new();
+
+        [FoldoutGroup("Unity Events/Banter Dialogue")]
+        public BanterDialogueUnityEvent onBanterDialogueStart = new();
+
+        [FoldoutGroup("Unity Events/Banter Dialogue")]
+        public BanterDialogueUnityEvent onBanterDialogueEnd = new();
+
+        [FoldoutGroup("Unity Events/Timeline Cutscene")]
+        public TimelineCutsceneUnityEvent onTimelineCutsceneStart = new();
+
+        [FoldoutGroup("Unity Events/Timeline Cutscene")]
+        public TimelineCutsceneUnityEvent onTimelineCutsceneEnd = new();
+
+        [FoldoutGroup("Unity Events/Timeline Cutscene")]
+        public TimelineCutsceneNameUnityEvent onTimelineCutsceneStartName = new();
+
+        [FoldoutGroup("Unity Events/Timeline Cutscene")]
+        public TimelineCutsceneNameUnityEvent onTimelineCutsceneEndName = new();
+
+        [FoldoutGroup("Unity Events/Dialogue Choice")]
+        public DialogueChoiceUnityEvent onDialogueChoiceSelected = new();
 
         [TitleGroup("Test")]
         [SerializeField]
@@ -229,28 +273,51 @@ namespace RAXY.Narrative
         }
 
         void HandleFullscreenDialogueStart(FullscreenDialogueDataSO data, string collectionId)
-            => OnFullscreenDialogueStart?.Invoke(data, collectionId);
+        {
+            OnFullscreenDialogueStart?.Invoke(data, collectionId);
+            onFullscreenDialogueStart?.Invoke(data, collectionId);
+        }
 
         void HandleFullscreenDialogueEnd(FullscreenDialogueDataSO data, string collectionId)
-            => OnFullscreenDialogueEnd?.Invoke(data, collectionId);
+        {
+            OnFullscreenDialogueEnd?.Invoke(data, collectionId);
+            onFullscreenDialogueEnd?.Invoke(data, collectionId);
+        }
 
         void HandleBanterDialogueStart(BanterDialogueDataSO data)
-            => OnBanterDialogueStart?.Invoke(data);
+        {
+            OnBanterDialogueStart?.Invoke(data);
+            onBanterDialogueStart?.Invoke(data);
+        }
 
         void HandleBanterDialogueEnd(BanterDialogueDataSO data)
-            => OnBanterDialogueEnd?.Invoke(data);
+        {
+            OnBanterDialogueEnd?.Invoke(data);
+            onBanterDialogueEnd?.Invoke(data);
+        }
 
         void HandleDialogueChoiceSelected(int index)
-            => OnDialogueChoiceSelected?.Invoke(index);
+        {
+            OnDialogueChoiceSelected?.Invoke(index);
+            onDialogueChoiceSelected?.Invoke(index);
+        }
 
         /// <summary>
         /// Dipanggil TimelineCutscene (termasuk instance dinamis).
         /// </summary>
         public void NotifyTimelineCutsceneStart(TimelineCutscene cutscene)
-            => OnTimelineCutsceneStart?.Invoke(cutscene);
+        {
+            OnTimelineCutsceneStart?.Invoke(cutscene);
+            onTimelineCutsceneStart?.Invoke(cutscene);
+            onTimelineCutsceneStartName?.Invoke(cutscene != null ? cutscene.gameObject.name : null);
+        }
 
         public void NotifyTimelineCutsceneEnd(TimelineCutscene cutscene)
-            => OnTimelineCutsceneEnd?.Invoke(cutscene);
+        {
+            OnTimelineCutsceneEnd?.Invoke(cutscene);
+            onTimelineCutsceneEnd?.Invoke(cutscene);
+            onTimelineCutsceneEndName?.Invoke(cutscene != null ? cutscene.gameObject.name : null);
+        }
 
         public void Process_NarrativeAction(NarrativeAction action)
         {
