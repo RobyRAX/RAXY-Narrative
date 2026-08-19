@@ -11,6 +11,10 @@ namespace RAXY.Narrative
     {
         [TitleGroup("UI Ref")]
         [SerializeField]
+        Canvas canvas;
+
+        [TitleGroup("UI Ref")]
+        [SerializeField]
         Transform choiceContainer;
 
         [TitleGroup("Prefab Ref")]
@@ -27,6 +31,14 @@ namespace RAXY.Narrative
         public event Action<int> OnChoiceSelected;
         public int SpawnedCount => spawnedChoices?.Count ?? 0;
 
+        void Awake()
+        {
+            if (canvas == null)
+                canvas = GetComponentInChildren<Canvas>(true);
+
+            SetCanvasVisible(false);
+        }
+
         [TitleGroup("Test")]
         [SerializeField]
         List<DialogueChoiceEntry> test_Entries;
@@ -41,7 +53,7 @@ namespace RAXY.Narrative
         public void Setup(List<DialogueChoiceEntry> choiceEntries)
         {
             ClearChoices();
-            gameObject.SetActive(true);
+            SetCanvasVisible(true);
 
             if (!TryValidate(choiceEntries))
                 return;
@@ -62,7 +74,7 @@ namespace RAXY.Narrative
         public async UniTask SetupAsync(List<DialogueChoiceEntry> choiceEntries)
         {
             ClearChoices();
-            gameObject.SetActive(true);
+            SetCanvasVisible(true);
 
             if (!TryValidate(choiceEntries))
                 return;
@@ -115,6 +127,8 @@ namespace RAXY.Narrative
                 foreach (Transform child in choiceContainer)
                     Destroy(child.gameObject);
             }
+
+            SetCanvasVisible(false);
         }
 
         void HandleChoiceSelected(int index)
@@ -164,6 +178,12 @@ namespace RAXY.Narrative
             _waitCts = null;
             _choiceTcs = null;
             ClearChoices();
+        }
+
+        void SetCanvasVisible(bool visible)
+        {
+            if (canvas != null)
+                canvas.gameObject.SetActive(visible);
         }
     }
 }

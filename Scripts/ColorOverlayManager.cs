@@ -41,6 +41,7 @@ namespace RAXY.Narrative
             var initColor = defaultColor;
             initColor.a = 0f;
             ApplyImmediate(initColor);
+            SyncCanvasVisibility();
         }
 
         public bool IsInForceTransition { get; private set; }
@@ -52,6 +53,9 @@ namespace RAXY.Narrative
 
             if (!force && IsInForceTransition)
                 return;
+
+            if (endColor.a > 0f || overlayImage.color.a > 0f)
+                overlayCanvas?.gameObject.SetActive(true);
 
             KillFadeTween();
             IsInForceTransition = force;
@@ -71,6 +75,7 @@ namespace RAXY.Narrative
                 .OnComplete(() =>
                 {
                     SyncRaycastFromCurrentAlpha();
+                    SyncCanvasVisibility();
                     if (force)
                         IsInForceTransition = false;
                 });
@@ -96,6 +101,7 @@ namespace RAXY.Narrative
 
             overlayImage.color = color;
             overlayImage.raycastTarget = color.a > 0f;
+            SyncCanvasVisibility();
         }
 
         void SyncRaycastFromCurrentAlpha()
@@ -104,6 +110,14 @@ namespace RAXY.Narrative
                 return;
 
             overlayImage.raycastTarget = overlayImage.color.a > 0f;
+        }
+
+        void SyncCanvasVisibility()
+        {
+            if (overlayCanvas == null)
+                return;
+
+            overlayCanvas.gameObject.SetActive(overlayImage != null && overlayImage.color.a > 0f);
         }
 
         void KillFadeTween()

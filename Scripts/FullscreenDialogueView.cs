@@ -109,6 +109,8 @@ namespace RAXY.Narrative
 
             if (nextBtn != null)
                 nextBtn.onClick.AddListener(Advance);
+
+            SetCanvasVisible(false);
         }
 
         void OnDestroy()
@@ -166,6 +168,7 @@ namespace RAXY.Narrative
 
                 ApplyPortraitStates(collection.portraitSetting_OnStart.states, forceInstant: true);
 
+                SetCanvasVisible(true);
                 await FadeMainCanvasGroupAsync(1f);
                 ShowDialogueBar();
 
@@ -433,6 +436,14 @@ namespace RAXY.Narrative
 
             if (_textTyper == null && dialogueLineTmp != null)
                 dialogueLineTmp.text = string.Empty;
+
+            SetCanvasVisible(false);
+        }
+
+        void SetCanvasVisible(bool visible)
+        {
+            if (canvas != null)
+                canvas.gameObject.SetActive(visible);
         }
     }
 }

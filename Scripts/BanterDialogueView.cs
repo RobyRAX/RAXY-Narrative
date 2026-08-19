@@ -89,6 +89,8 @@ namespace RAXY.Narrative
 
             _textTyper = dialogueLineTmp.GetOrAddComponent<TextTyper>();
             _anim = gameObject.GetOrAddComponent<Animation>();
+
+            SetCanvasVisible(false);
         }
 
         void OnDestroy()
@@ -203,6 +205,8 @@ namespace RAXY.Narrative
 
         async UniTask PlayEnterAsync(CancellationToken ct)
         {
+            SetCanvasVisible(true);
+
             if (transitionType == BanterDialogueTransition.Animation)
                 await PlayAnimationClipAsync(enterAnimationClip, ct);
             else
@@ -215,6 +219,8 @@ namespace RAXY.Narrative
                 await PlayAnimationClipAsync(exitAnimationClip, ct);
             else
                 await FadeCanvasGroupAsync(0f, ct);
+
+            SetCanvasVisible(false);
         }
 
         async UniTask PlayAnimationClipAsync(AnimationClip clip, CancellationToken ct)
@@ -289,6 +295,12 @@ namespace RAXY.Narrative
 
             if (_anim != null && _anim.isPlaying)
                 _anim.Stop();
+        }
+
+        void SetCanvasVisible(bool visible)
+        {
+            if (canvas != null)
+                canvas.gameObject.SetActive(visible);
         }
     }
 
