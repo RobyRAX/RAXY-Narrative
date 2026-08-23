@@ -276,9 +276,9 @@ namespace RAXY.Narrative
 #if UNITY_EDITOR
             bool wasSyncing = _syncingPortraitSizes;
             _syncingPortraitSizes = true;
-#endif
             try
             {
+#endif
                 actorSO.fullScreenPortraitSizes ??= new List<PortraitSizeEntry>();
                 var soList = actorSO.fullScreenPortraitSizes;
 
@@ -294,9 +294,7 @@ namespace RAXY.Narrative
 #if UNITY_EDITOR
                 _lastSyncedSoSizeCount = soList.Count;
                 _lastSyncedPortraitSizeCount = portraitSizes.Count;
-#endif
             }
-#if UNITY_EDITOR
             finally
             {
                 _syncingPortraitSizes = wasSyncing;

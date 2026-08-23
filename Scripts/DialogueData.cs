@@ -216,6 +216,9 @@ namespace RAXY.Narrative
 
             NarrativeAction.BindPlayDialogueToParent(narrativeActions_OnComplete, cachedParentSO);
         }
+#else
+        void OnDialogueLinesChanged() { }
+        void OnNarrativeActionsOnCompleteChanged() { }
 #endif
     }
 
@@ -296,6 +299,8 @@ namespace RAXY.Narrative
             foreach (var line in dialogueLines)
                 line.SetupEditor(cachedActors);
         }
+#else
+        void OnDialogueLinesChanged() { }
 #endif
     }
 

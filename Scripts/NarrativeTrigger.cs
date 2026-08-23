@@ -109,6 +109,9 @@ namespace RAXY.Narrative
 #if UNITY_EDITOR
         IEnumerable<string> TimelineIds => timelineCutscene != null ? timelineCutscene.TimelineIds : null;
         List<string> CollectionIds => fullscreenDialogueDataSO?.CollectionIds;
+#else
+        IEnumerable<string> TimelineIds => null;
+        List<string> CollectionIds => null;
 #endif
     }
 

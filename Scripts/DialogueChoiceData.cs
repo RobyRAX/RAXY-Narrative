@@ -23,8 +23,6 @@ namespace RAXY.Narrative
 
         public string Label => lineProvider.String;
 
-#if UNITY_EDITOR
         NarrativeAction AddNarrativeAction() => new NarrativeAction();
-#endif
     }
 }

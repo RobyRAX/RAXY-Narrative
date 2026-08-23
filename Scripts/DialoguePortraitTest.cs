@@ -13,12 +13,14 @@ namespace RAXY.Narrative
         [HideLabel]
         PortraitStateSetter stateSetter;
 
+#if UNITY_EDITOR
         [TitleGroup("State Setter")]
         [Button]
         void SetupEditor()
         {
             stateSetter.SetupEditor(actorSO);
         }
+#endif
 
         [TitleGroup("Debug Function")]
         [Button]

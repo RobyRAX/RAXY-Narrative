@@ -82,6 +82,8 @@ namespace RAXY.Narrative
 
 #if UNITY_EDITOR
         List<string> CollectionIds => dialogueSO?.CollectionIds;
+#else
+        List<string> CollectionIds => null;
 #endif
     }
 
@@ -146,6 +148,8 @@ namespace RAXY.Narrative
 
 #if UNITY_EDITOR
         IEnumerable<string> TimelineIds => cutscene != null ? cutscene.TimelineIds : null;
+#else
+        IEnumerable<string> TimelineIds => null;
 #endif
     }
 }

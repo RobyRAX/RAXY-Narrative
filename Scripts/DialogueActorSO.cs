@@ -66,6 +66,8 @@ namespace RAXY.Narrative
                     portrait.SyncPortraitSizesWithSO();
             }
         }
+#else
+        void NotifyPortraitSizesChanged() { }
 #endif
     }
 

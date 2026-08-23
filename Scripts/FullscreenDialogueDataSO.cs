@@ -42,6 +42,8 @@ namespace RAXY.Narrative
 
             RefreshEditor();
         }
+#else
+        void OnCollectionsChanged() { }
 #endif
 
         [TitleGroup("Dialogue Collections")]
