@@ -15,8 +15,9 @@ namespace RAXY.Narrative
     {
         public PlayableDirector PlayableDirector { get; set; }
 
-        [TitleGroup("Lifecycle")]
+        [TitleGroup("Timelines")]
         [SerializeField]
+        [PropertyOrder(-2)]
         [Tooltip("Destroy this GameObject when the cutscene completes. Default true (typical for prefab cutscenes).")]
         bool destroyOnComplete = true;
 
@@ -145,16 +146,16 @@ namespace RAXY.Narrative
             }
         }
 
-        [TitleGroup("Cutscene Dialogue")]
+        [TitleGroup("Runtime")]
         [ShowInInspector, ReadOnly]
         public bool IsDialogueHoldActive { get; private set; }
 
-        [TitleGroup("Cutscene Dialogue")]
+        [TitleGroup("Runtime")]
         [ShowInInspector, ReadOnly]
         [PropertyOrder(-1)]
         public bool IsPlayheadWrapActive { get; private set; }
 
-        [TitleGroup("Cutscene Dialogue")]
+        [TitleGroup("Runtime")]
         [ShowInInspector]
         [PropertyOrder(1)]
         [HideReferenceObjectPicker]

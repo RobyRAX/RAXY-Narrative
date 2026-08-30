@@ -15,7 +15,8 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 
 1. Add `NarrativeHubManager` to your scene and assign fullscreen/banter/choice views and cutscene runner.
 2. Create assets via **Create > RAXY > Narrative**.
-3. For timeline dialogue, use `CutsceneDialogueTrack` clips bound through `TimelineCutscene` / `TimelineCutsceneTrackBinder`.
+3. Create scene cutscenes via **GameObject > RAXY > Narrative > Cutscene Timeline** — spawns a root cutscene at world origin with `TimelineCutscene`, `PlayableDirector`, and a new Timeline asset in `Assets/`.
+4. For timeline dialogue, use `CutsceneDialogueTrack` clips bound through `TimelineCutscene` / `TimelineCutsceneTrackBinder`.
 
 ## Dependencies
 
