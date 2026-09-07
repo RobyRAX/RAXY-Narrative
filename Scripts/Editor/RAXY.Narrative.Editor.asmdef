@@ -2,7 +2,9 @@
     "name": "RAXY.Narrative.Editor",
     "rootNamespace": "RAXY.Narrative",
     "references": [
-        "RAXY.Narrative",
+        "GUID:5adf8ba3b06b35a4db70ae048f293184",
+        "GUID:736f23a4f42e49d429767945c0c5b49e",
+        "GUID:fe8045beaaaab5a4fbe18ce58cdcbc81",
         "Unity.Timeline"
     ],
     "includePlatforms": [

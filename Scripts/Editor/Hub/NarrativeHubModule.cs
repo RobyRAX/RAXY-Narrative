@@ -1,0 +1,533 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using RAXY.Utility.Editor.Hub;
+using UnityEditor;
+using UnityEngine;
+
+namespace RAXY.Narrative
+{
+    public sealed class NarrativeHubModule : IRaxyHubModule
+    {
+        enum DialogueKind
+        {
+            Fullscreen,
+            Banter
+        }
+
+        struct DialogueEntry
+        {
+            public DialogueKind Kind;
+            public ScriptableObject Asset;
+            public string AssetPath;
+            public string FolderPath;
+            public string DisplayName;
+        }
+
+        struct CutsceneEntry
+        {
+            public TimelineCutscene Cutscene;
+            public string AssetPath;
+            public string FolderPath;
+            public string DisplayName;
+        }
+
+        enum ContentTab
+        {
+            Dialogues = 0,
+            TimelineCutscenes = 1
+        }
+
+        static readonly string[] ContentTabLabels = { "Dialogues", "Timeline Cutscenes" };
+
+        readonly List<DialogueEntry> _dialogues = new();
+        readonly List<CutsceneEntry> _cutscenes = new();
+        readonly Dictionary<string, int> _collectionIndexByPath = new();
+        readonly Dictionary<string, int> _timelineIndexByPath = new();
+
+        ContentTab _contentTab = ContentTab.Dialogues;
+        Vector2 _listScroll;
+        Vector2 _cutsceneScroll;
+        string _filter = "";
+
+        public string Id => "narrative";
+        public string DisplayName => "Narrative";
+        public int Order => 110;
+
+        public void OnEnable()
+        {
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            RefreshAll();
+        }
+
+        public void OnDisable()
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        }
+
+        void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            EditorApplication.delayCall += () =>
+            {
+                if (EditorWindow.HasOpenInstances<RaxyProjectHubWindow>())
+                    EditorWindow.GetWindow<RaxyProjectHubWindow>().Repaint();
+            };
+        }
+
+        public void OnGUI()
+        {
+            using (new EditorGUILayout.VerticalScope(GUILayout.ExpandHeight(true)))
+            {
+                DrawManagerSection();
+                EditorGUILayout.Space(8f);
+
+                _contentTab = (ContentTab)GUILayout.Toolbar((int)_contentTab, ContentTabLabels);
+
+                EditorGUILayout.Space(6f);
+                DrawToolbar();
+                EditorGUILayout.Space(4f);
+
+                switch (_contentTab)
+                {
+                    case ContentTab.Dialogues:
+                        DrawDialogueList();
+                        break;
+                    case ContentTab.TimelineCutscenes:
+                        DrawCutsceneSection();
+                        break;
+                }
+            }
+        }
+
+        void DrawManagerSection()
+        {
+            var hub = NarrativeHubManager.Instance;
+            bool hasHub = hub != null;
+
+            if (hasHub)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Runtime mode — NarrativeHubManager.Instance = '{hub.name}'.",
+                    MessageType.Info);
+
+                if (GUILayout.Button("Find Narrative Hub Instance", GUILayout.Height(22f)))
+                    FindNarrativeHubInstance();
+
+                EditorGUILayout.ObjectField("Instance", hub, typeof(NarrativeHubManager), true);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "Editor mode — NarrativeHubManager.Instance is not set.\n" +
+                    "Enter Play Mode (with NarrativeHubManager in the scene), then Find Instance to enable Play/End.",
+                    MessageType.Warning);
+
+                if (GUILayout.Button("Find Narrative Hub Instance", GUILayout.Height(24f)))
+                    FindNarrativeHubInstance();
+            }
+        }
+
+        void DrawToolbar()
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _filter = EditorGUILayout.TextField("Filter", _filter);
+                if (GUILayout.Button("Refresh List", GUILayout.Width(100f)))
+                    RefreshAll();
+            }
+
+            string countLabel = _contentTab == ContentTab.Dialogues
+                ? $"Dialogues: {_dialogues.Count}"
+                : $"Cutscene prefabs: {_cutscenes.Count}";
+            EditorGUILayout.LabelField(countLabel, EditorStyles.miniLabel);
+        }
+
+        void DrawDialogueList()
+        {
+            if (_dialogues.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No FullscreenDialogueDataSO / BanterDialogueDataSO found.\n" +
+                    "Create via Assets > Create > RAXY > Narrative.",
+                    MessageType.Info);
+                return;
+            }
+
+            bool hasHub = NarrativeHubManager.Instance != null;
+            _listScroll = EditorGUILayout.BeginScrollView(_listScroll, GUILayout.ExpandHeight(true));
+
+            foreach (var entry in _dialogues)
+            {
+                if (entry.Asset == null)
+                    continue;
+
+                if (!PassesFilter(entry))
+                    continue;
+
+                DrawDialogueRow(entry, hasHub);
+            }
+
+            EditorGUILayout.EndScrollView();
+
+            if (!hasHub)
+            {
+                EditorGUILayout.LabelField(
+                    "Play / End disabled — Find Narrative Hub Instance first.",
+                    EditorStyles.centeredGreyMiniLabel);
+            }
+        }
+
+        void DrawDialogueRow(DialogueEntry entry, bool hasHub)
+        {
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(entry.DisplayName, EditorStyles.boldLabel);
+                    GUILayout.FlexibleSpace();
+                    EditorGUILayout.LabelField(entry.Kind.ToString(), EditorStyles.miniLabel, GUILayout.Width(72f));
+                }
+
+                EditorGUILayout.LabelField("Folder", entry.FolderPath, EditorStyles.miniLabel);
+
+                if (entry.Kind == DialogueKind.Fullscreen &&
+                    entry.Asset is FullscreenDialogueDataSO fullscreen)
+                {
+                    DrawCollectionDropdown(entry.AssetPath, fullscreen);
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("Ping", GUILayout.Width(50f)))
+                    {
+                        EditorGUIUtility.PingObject(entry.Asset);
+                        Selection.activeObject = entry.Asset;
+                    }
+
+                    using (new EditorGUI.DisabledScope(!hasHub))
+                    {
+                        if (GUILayout.Button("Play"))
+                            PlayDialogue(entry);
+
+                        if (GUILayout.Button("End"))
+                            EndDialogue(entry.Kind);
+                    }
+                }
+            }
+        }
+
+        void DrawCollectionDropdown(string assetPath, FullscreenDialogueDataSO data)
+        {
+            if (data.dialogueCollections == null || data.dialogueCollections.Count == 0)
+            {
+                EditorGUILayout.LabelField("Collections", "(none — Play uses default)", EditorStyles.miniLabel);
+                return;
+            }
+
+            var ids = data.CollectionIds;
+            if (ids == null || ids.Count == 0)
+            {
+                EditorGUILayout.LabelField("Collections", "(none — Play uses default)", EditorStyles.miniLabel);
+                return;
+            }
+
+            if (!_collectionIndexByPath.TryGetValue(assetPath, out int index))
+                index = 0;
+
+            index = Mathf.Clamp(index, 0, ids.Count - 1);
+            var labels = ids.Select(id => string.IsNullOrEmpty(id) ? "(empty id)" : id).ToArray();
+            int newIndex = EditorGUILayout.Popup("Collection", index, labels);
+            _collectionIndexByPath[assetPath] = newIndex;
+        }
+
+        void DrawCutsceneSection()
+        {
+            bool hasHub = NarrativeHubManager.Instance != null;
+
+            if (_cutscenes.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No TimelineCutscene prefabs found. Create a prefab with a TimelineCutscene component.",
+                    MessageType.Info);
+                return;
+            }
+
+            _cutsceneScroll = EditorGUILayout.BeginScrollView(_cutsceneScroll, GUILayout.ExpandHeight(true));
+
+            foreach (var entry in _cutscenes)
+            {
+                if (entry.Cutscene == null)
+                    continue;
+
+                if (!PassesCutsceneFilter(entry))
+                    continue;
+
+                DrawCutsceneRow(entry, hasHub);
+            }
+
+            EditorGUILayout.EndScrollView();
+
+            if (!hasHub)
+            {
+                EditorGUILayout.LabelField(
+                    "Cutscene Play disabled — Find Narrative Hub Instance first.",
+                    EditorStyles.centeredGreyMiniLabel);
+            }
+        }
+
+        void DrawCutsceneRow(CutsceneEntry entry, bool hasHub)
+        {
+            var cutscene = entry.Cutscene;
+            var timelineIds = cutscene.TimelineIds?.ToList() ?? new List<string>();
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(entry.DisplayName, EditorStyles.boldLabel);
+                    GUILayout.FlexibleSpace();
+                    EditorGUILayout.LabelField("Prefab", EditorStyles.miniLabel, GUILayout.Width(72f));
+                }
+
+                EditorGUILayout.LabelField("Folder", entry.FolderPath, EditorStyles.miniLabel);
+
+                string timelineId = null;
+                if (timelineIds.Count > 0)
+                {
+                    if (!_timelineIndexByPath.TryGetValue(entry.AssetPath, out int index))
+                        index = 0;
+
+                    index = Mathf.Clamp(index, 0, timelineIds.Count - 1);
+                    int newIndex = EditorGUILayout.Popup("Timeline Id", index, timelineIds.ToArray());
+                    _timelineIndexByPath[entry.AssetPath] = newIndex;
+                    timelineId = timelineIds[newIndex];
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("Timeline Id", "(none registered)", EditorStyles.miniLabel);
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("Ping", GUILayout.Width(50f)))
+                    {
+                        var prefabRoot = cutscene.gameObject;
+                        EditorGUIUtility.PingObject(prefabRoot);
+                        Selection.activeObject = prefabRoot;
+                    }
+
+                    using (new EditorGUI.DisabledScope(!hasHub || string.IsNullOrEmpty(timelineId)))
+                    {
+                        if (GUILayout.Button("Play"))
+                            PlayCutscene(cutscene, timelineId);
+                    }
+                }
+            }
+        }
+
+        bool PassesFilter(DialogueEntry entry)
+        {
+            if (string.IsNullOrWhiteSpace(_filter))
+                return true;
+
+            string q = _filter.Trim();
+            return entry.DisplayName.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.FolderPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.Kind.ToString().IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        bool PassesCutsceneFilter(CutsceneEntry entry)
+        {
+            if (string.IsNullOrWhiteSpace(_filter))
+                return true;
+
+            string q = _filter.Trim();
+            return entry.DisplayName.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.FolderPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.AssetPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        void RefreshAll()
+        {
+            RefreshDialogues();
+            RefreshCutscenes();
+        }
+
+        void RefreshDialogues()
+        {
+            _dialogues.Clear();
+
+            AddDialogues("t:FullscreenDialogueDataSO", DialogueKind.Fullscreen);
+            AddDialogues("t:BanterDialogueDataSO", DialogueKind.Banter);
+
+            _dialogues.Sort((a, b) =>
+            {
+                int kind = a.Kind.CompareTo(b.Kind);
+                if (kind != 0)
+                    return kind;
+                return string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+
+        void AddDialogues(string filter, DialogueKind kind)
+        {
+            string[] guids = AssetDatabase.FindAssets(filter);
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+                if (asset == null)
+                    continue;
+
+                _dialogues.Add(new DialogueEntry
+                {
+                    Kind = kind,
+                    Asset = asset,
+                    AssetPath = path,
+                    FolderPath = Path.GetDirectoryName(path)?.Replace('\\', '/') ?? path,
+                    DisplayName = asset.name
+                });
+            }
+        }
+
+        void RefreshCutscenes()
+        {
+            _cutscenes.Clear();
+
+            string[] guids = AssetDatabase.FindAssets("t:Prefab");
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path) || !path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (root == null)
+                    continue;
+
+                var cutscene = root.GetComponentInChildren<TimelineCutscene>(true);
+                if (cutscene == null)
+                    continue;
+
+                // Skip prefab instances that somehow aren't assets.
+                if (!PrefabUtility.IsPartOfPrefabAsset(cutscene))
+                    continue;
+
+                _cutscenes.Add(new CutsceneEntry
+                {
+                    Cutscene = cutscene,
+                    AssetPath = path,
+                    FolderPath = Path.GetDirectoryName(path)?.Replace('\\', '/') ?? path,
+                    DisplayName = root.name
+                });
+            }
+
+            _cutscenes.Sort((a, b) =>
+                string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        void FindNarrativeHubInstance()
+        {
+            var found = UnityEngine.Object.FindObjectsByType<NarrativeHubManager>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+            if (found == null || found.Length == 0)
+            {
+                Debug.LogWarning(
+                    "[RAXY Hub / Narrative] No NarrativeHubManager found in loaded scenes. " +
+                    "Enter Play Mode and ensure a NarrativeHubManager is present.");
+                return;
+            }
+
+            if (found.Length > 1)
+            {
+                Debug.LogWarning(
+                    $"[RAXY Hub / Narrative] Found {found.Length} NarrativeHubManager instances; " +
+                    $"Singleton Instance is '{(NarrativeHubManager.Instance != null ? NarrativeHubManager.Instance.name : "null")}'.");
+            }
+
+            var hub = NarrativeHubManager.Instance != null ? NarrativeHubManager.Instance : found[0];
+            EditorGUIUtility.PingObject(hub);
+            Selection.activeGameObject = hub.gameObject;
+            Debug.Log($"[RAXY Hub / Narrative] Found NarrativeHubManager '{hub.name}'.");
+            EditorWindow.GetWindow<RaxyProjectHubWindow>()?.Repaint();
+        }
+
+        void PlayDialogue(DialogueEntry entry)
+        {
+            var hub = NarrativeHubManager.Instance;
+            if (hub == null)
+            {
+                Debug.LogWarning("[RAXY Hub / Narrative] NarrativeHubManager.Instance is null.");
+                return;
+            }
+
+            switch (entry.Kind)
+            {
+                case DialogueKind.Fullscreen:
+                    if (entry.Asset is not FullscreenDialogueDataSO fullscreen)
+                        return;
+
+                    string collectionId = null;
+                    if (fullscreen.dialogueCollections != null && fullscreen.dialogueCollections.Count > 0)
+                    {
+                        var ids = fullscreen.CollectionIds;
+                        if (ids != null && ids.Count > 0 &&
+                            _collectionIndexByPath.TryGetValue(entry.AssetPath, out int index))
+                        {
+                            index = Mathf.Clamp(index, 0, ids.Count - 1);
+                            collectionId = ids[index];
+                        }
+                    }
+
+                    hub.PlayFullscreenDialogue(fullscreen, collectionId);
+                    break;
+
+                case DialogueKind.Banter:
+                    if (entry.Asset is BanterDialogueDataSO banter)
+                        hub.PlayBanterDialogue(banter);
+                    break;
+            }
+        }
+
+        void EndDialogue(DialogueKind kind)
+        {
+            var hub = NarrativeHubManager.Instance;
+            if (hub == null)
+            {
+                Debug.LogWarning("[RAXY Hub / Narrative] NarrativeHubManager.Instance is null.");
+                return;
+            }
+
+            switch (kind)
+            {
+                case DialogueKind.Fullscreen:
+                    hub.EndFullscreenDialogue();
+                    break;
+                case DialogueKind.Banter:
+                    hub.EndBanterDialogue();
+                    break;
+            }
+        }
+
+        void PlayCutscene(TimelineCutscene cutscene, string timelineId)
+        {
+            var hub = NarrativeHubManager.Instance;
+            if (hub == null)
+            {
+                Debug.LogWarning("[RAXY Hub / Narrative] NarrativeHubManager.Instance is null.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(timelineId))
+            {
+                Debug.LogWarning("[RAXY Hub / Narrative] Timeline Id is empty.");
+                return;
+            }
+
+            hub.PlayTimelineCutscene(cutscene, timelineId);
+        }
+    }
+}

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [CustomEditor(typeof(CutsceneDialogueClip))]
-    public class CutsceneDialogueClipEditor : Editor
+    public class CutsceneDialogueClipEditor : UnityEditor.Editor
     {
         SerializedProperty dialogueSOProp;
         SerializedProperty dialogueCollectionIdProp;
