@@ -169,6 +169,30 @@ namespace RAXY.Narrative
         [SerializeField, HideInInspector]
         List<GameObject> editorHelperSpawned = new List<GameObject>();
 
+        /// <summary>
+        /// Used by Create Cutscene Timeline / Project Hub defaults.
+        /// </summary>
+        public void ApplyEditorHelperPrefabs(IEnumerable<GameObject> prefabs)
+        {
+            if (editorHelperPrefabs == null)
+                editorHelperPrefabs = new List<GameObject>();
+            else
+                editorHelperPrefabs.Clear();
+
+            if (prefabs == null)
+                return;
+
+            foreach (var prefab in prefabs)
+            {
+                if (prefab == null)
+                    continue;
+
+                editorHelperPrefabs.Add(prefab);
+            }
+
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
         [TitleGroup("Editor Helper")]
         [HorizontalGroup("Editor Helper/Actions")]
         [Button("Spawn")]

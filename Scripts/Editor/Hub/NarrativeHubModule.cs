@@ -80,13 +80,13 @@ namespace RAXY.Narrative
             using (new EditorGUILayout.VerticalScope(GUILayout.ExpandHeight(true)))
             {
                 DrawManagerSection();
-                EditorGUILayout.Space(8f);
+                EditorGUILayout.Space(10f);
 
                 _contentTab = (ContentTab)GUILayout.Toolbar((int)_contentTab, ContentTabLabels);
+                EditorGUILayout.Space(8f);
 
-                EditorGUILayout.Space(6f);
                 DrawToolbar();
-                EditorGUILayout.Space(4f);
+                EditorGUILayout.Space(6f);
 
                 switch (_contentTab)
                 {
@@ -107,40 +107,70 @@ namespace RAXY.Narrative
 
             if (hasHub)
             {
-                EditorGUILayout.HelpBox(
-                    $"Runtime mode — NarrativeHubManager.Instance = '{hub.name}'.",
-                    MessageType.Info);
+                RaxyHubGui.DrawStatusBanner(
+                    true,
+                    "Runtime connected",
+                    $"NarrativeHubManager.Instance = '{hub.name}'.");
 
-                if (GUILayout.Button("Find Narrative Hub Instance", GUILayout.Height(22f)))
+                if (RaxyHubGui.PrimaryButton("Find Narrative Hub Instance"))
                     FindNarrativeHubInstance();
 
+                EditorGUILayout.Space(4f);
                 EditorGUILayout.ObjectField("Instance", hub, typeof(NarrativeHubManager), true);
             }
             else
             {
-                EditorGUILayout.HelpBox(
-                    "Editor mode — NarrativeHubManager.Instance is not set.\n" +
-                    "Enter Play Mode (with NarrativeHubManager in the scene), then Find Instance to enable Play/End.",
-                    MessageType.Warning);
+                RaxyHubGui.DrawStatusBanner(
+                    false,
+                    "Editor mode — hub not linked",
+                    "Enter Play Mode with a NarrativeHubManager in the scene, then Find Instance to enable Play/End.");
 
-                if (GUILayout.Button("Find Narrative Hub Instance", GUILayout.Height(24f)))
+                if (RaxyHubGui.PrimaryButton("Find Narrative Hub Instance"))
                     FindNarrativeHubInstance();
+            }
+
+            EditorGUILayout.Space(10f);
+            DrawCutsceneDefaultsSection();
+        }
+
+        void DrawCutsceneDefaultsSection()
+        {
+            EditorGUILayout.LabelField("Cutscene Defaults", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Default Editor Helper Prefabs are assigned automatically when creating a Cutscene Timeline via Assets/Create.",
+                MessageType.None);
+
+            var settings = NarrativeEditorSettings.instance;
+            var so = new SerializedObject(settings);
+            so.Update();
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(
+                so.FindProperty("defaultEditorHelperPrefabs"),
+                new GUIContent("Default Helper Prefabs"),
+                true);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                so.ApplyModifiedProperties();
+                settings.SaveDefaults();
+            }
+            else
+            {
+                so.ApplyModifiedProperties();
             }
         }
 
         void DrawToolbar()
         {
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                _filter = EditorGUILayout.TextField("Filter", _filter);
-                if (GUILayout.Button("Refresh List", GUILayout.Width(100f)))
-                    RefreshAll();
-            }
+            _filter = RaxyHubGui.DrawToolbarRow(_filter, out bool refresh);
+            if (refresh)
+                RefreshAll();
 
             string countLabel = _contentTab == ContentTab.Dialogues
-                ? $"Dialogues: {_dialogues.Count}"
-                : $"Cutscene prefabs: {_cutscenes.Count}";
-            EditorGUILayout.LabelField(countLabel, EditorStyles.miniLabel);
+                ? $"{_dialogues.Count} dialogues"
+                : $"{_cutscenes.Count} cutscene prefabs";
+            RaxyHubGui.DrawCountChip(countLabel);
         }
 
         void DrawDialogueList()
@@ -171,64 +201,56 @@ namespace RAXY.Narrative
             EditorGUILayout.EndScrollView();
 
             if (!hasHub)
-            {
-                EditorGUILayout.LabelField(
-                    "Play / End disabled — Find Narrative Hub Instance first.",
-                    EditorStyles.centeredGreyMiniLabel);
-            }
+                RaxyHubGui.DrawHint("Play / End disabled until Narrative Hub is linked.");
         }
 
         void DrawDialogueRow(DialogueEntry entry, bool hasHub)
         {
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            RaxyHubGui.BeginCard();
+            RaxyHubGui.DrawTitleRow(entry.DisplayName, entry.Kind.ToString());
+            RaxyHubGui.DrawMutedPath(entry.FolderPath);
+
+            if (entry.Kind == DialogueKind.Fullscreen &&
+                entry.Asset is FullscreenDialogueDataSO fullscreen)
             {
-                using (new EditorGUILayout.HorizontalScope())
+                EditorGUILayout.Space(2f);
+                DrawCollectionDropdown(entry.AssetPath, fullscreen);
+            }
+
+            EditorGUILayout.Space(4f);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (RaxyHubGui.SecondaryButton("Ping", 56f))
                 {
-                    EditorGUILayout.LabelField(entry.DisplayName, EditorStyles.boldLabel);
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField(entry.Kind.ToString(), EditorStyles.miniLabel, GUILayout.Width(72f));
+                    EditorGUIUtility.PingObject(entry.Asset);
+                    Selection.activeObject = entry.Asset;
                 }
 
-                EditorGUILayout.LabelField("Folder", entry.FolderPath, EditorStyles.miniLabel);
-
-                if (entry.Kind == DialogueKind.Fullscreen &&
-                    entry.Asset is FullscreenDialogueDataSO fullscreen)
+                using (new EditorGUI.DisabledScope(!hasHub))
                 {
-                    DrawCollectionDropdown(entry.AssetPath, fullscreen);
-                }
+                    if (RaxyHubGui.PrimaryButton("Play"))
+                        PlayDialogue(entry);
 
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Ping", GUILayout.Width(50f)))
-                    {
-                        EditorGUIUtility.PingObject(entry.Asset);
-                        Selection.activeObject = entry.Asset;
-                    }
-
-                    using (new EditorGUI.DisabledScope(!hasHub))
-                    {
-                        if (GUILayout.Button("Play"))
-                            PlayDialogue(entry);
-
-                        if (GUILayout.Button("End"))
-                            EndDialogue(entry.Kind);
-                    }
+                    if (RaxyHubGui.SecondaryButton("End", 56f))
+                        EndDialogue(entry.Kind);
                 }
             }
+
+            RaxyHubGui.EndCard();
         }
 
         void DrawCollectionDropdown(string assetPath, FullscreenDialogueDataSO data)
         {
             if (data.dialogueCollections == null || data.dialogueCollections.Count == 0)
             {
-                EditorGUILayout.LabelField("Collections", "(none — Play uses default)", EditorStyles.miniLabel);
+                RaxyHubGui.DrawMutedPath("Collections: (none — Play uses default)");
                 return;
             }
 
             var ids = data.CollectionIds;
             if (ids == null || ids.Count == 0)
             {
-                EditorGUILayout.LabelField("Collections", "(none — Play uses default)", EditorStyles.miniLabel);
+                RaxyHubGui.DrawMutedPath("Collections: (none — Play uses default)");
                 return;
             }
 
@@ -269,11 +291,7 @@ namespace RAXY.Narrative
             EditorGUILayout.EndScrollView();
 
             if (!hasHub)
-            {
-                EditorGUILayout.LabelField(
-                    "Cutscene Play disabled — Find Narrative Hub Instance first.",
-                    EditorStyles.centeredGreyMiniLabel);
-            }
+                RaxyHubGui.DrawHint("Cutscene Play disabled until Narrative Hub is linked.");
         }
 
         void DrawCutsceneRow(CutsceneEntry entry, bool hasHub)
@@ -281,49 +299,45 @@ namespace RAXY.Narrative
             var cutscene = entry.Cutscene;
             var timelineIds = cutscene.TimelineIds?.ToList() ?? new List<string>();
 
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            RaxyHubGui.BeginCard();
+            RaxyHubGui.DrawTitleRow(entry.DisplayName, "Prefab");
+            RaxyHubGui.DrawMutedPath(entry.FolderPath);
+
+            string timelineId = null;
+            EditorGUILayout.Space(2f);
+            if (timelineIds.Count > 0)
             {
-                using (new EditorGUILayout.HorizontalScope())
+                if (!_timelineIndexByPath.TryGetValue(entry.AssetPath, out int index))
+                    index = 0;
+
+                index = Mathf.Clamp(index, 0, timelineIds.Count - 1);
+                int newIndex = EditorGUILayout.Popup("Timeline Id", index, timelineIds.ToArray());
+                _timelineIndexByPath[entry.AssetPath] = newIndex;
+                timelineId = timelineIds[newIndex];
+            }
+            else
+            {
+                RaxyHubGui.DrawMutedPath("Timeline Id: (none registered)");
+            }
+
+            EditorGUILayout.Space(4f);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (RaxyHubGui.SecondaryButton("Ping", 56f))
                 {
-                    EditorGUILayout.LabelField(entry.DisplayName, EditorStyles.boldLabel);
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField("Prefab", EditorStyles.miniLabel, GUILayout.Width(72f));
+                    var prefabRoot = cutscene.gameObject;
+                    EditorGUIUtility.PingObject(prefabRoot);
+                    Selection.activeObject = prefabRoot;
                 }
 
-                EditorGUILayout.LabelField("Folder", entry.FolderPath, EditorStyles.miniLabel);
-
-                string timelineId = null;
-                if (timelineIds.Count > 0)
+                using (new EditorGUI.DisabledScope(!hasHub || string.IsNullOrEmpty(timelineId)))
                 {
-                    if (!_timelineIndexByPath.TryGetValue(entry.AssetPath, out int index))
-                        index = 0;
-
-                    index = Mathf.Clamp(index, 0, timelineIds.Count - 1);
-                    int newIndex = EditorGUILayout.Popup("Timeline Id", index, timelineIds.ToArray());
-                    _timelineIndexByPath[entry.AssetPath] = newIndex;
-                    timelineId = timelineIds[newIndex];
-                }
-                else
-                {
-                    EditorGUILayout.LabelField("Timeline Id", "(none registered)", EditorStyles.miniLabel);
-                }
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Ping", GUILayout.Width(50f)))
-                    {
-                        var prefabRoot = cutscene.gameObject;
-                        EditorGUIUtility.PingObject(prefabRoot);
-                        Selection.activeObject = prefabRoot;
-                    }
-
-                    using (new EditorGUI.DisabledScope(!hasHub || string.IsNullOrEmpty(timelineId)))
-                    {
-                        if (GUILayout.Button("Play"))
-                            PlayCutscene(cutscene, timelineId);
-                    }
+                    if (RaxyHubGui.PrimaryButton("Play"))
+                        PlayCutscene(cutscene, timelineId);
                 }
             }
+
+            RaxyHubGui.EndCard();
         }
 
         bool PassesFilter(DialogueEntry entry)
