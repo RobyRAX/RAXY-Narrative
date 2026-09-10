@@ -10,6 +10,8 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 - **DialoguePortrait / PortraitStateSetter** — animated multi-part portraits (DOTween)
 - **FullscreenDialogueDataSO / BanterDialogueDataSO / DialogueActorSO** — ScriptableObject dialogue data
 - **TimelineCutscene / CutsceneDialogueTrack** — timeline cutscenes with dialogue clips
+- **ColorOverlayManager / TextOverlayManager** — fullscreen color and caption text fades
+- **ColorOverlayTrack / TextOverlayTrack** — Timeline tracks for color and text overlays (bind via `TimelineCutsceneTrackBinder`)
 
 ## Setup
 
@@ -18,6 +20,15 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 3. Create cutscene assets via **Create > RAXY > Narrative > Cutscene Timeline** — prompts for a name, then creates a prefab (`TimelineCutscene` + `PlayableDirector`) and Timeline asset in the selected Project folder (fallback `Assets/`).
 4. Optional: set **Default Helper Prefabs** in **RAXY Project Hub → Narrative**; new cutscenes get those prefabs assigned to Editor Helper automatically.
 5. For timeline dialogue, use `CutsceneDialogueTrack` clips bound through `TimelineCutscene` / `TimelineCutsceneTrackBinder`.
+
+## Samples
+
+Demo hub, choice button, and portrait assets ship as a Package Manager sample (not auto-imported).
+
+1. Open **Window → Package Manager**.
+2. Select **RAXY Narrative**.
+3. Under **Samples**, click **Import** on **Basic Setup**.
+4. Unity copies the sample into `Assets/Samples/RAXY Narrative/<version>/Basic Setup/` so you can edit it in your project.
 
 ## Dependencies
 
@@ -42,4 +53,4 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 
 ## Notes
 
-Game-specific content (scenes, portrait prefabs, dialogue assets) should live in your project, not in this package.
+Game-specific content (scenes, dialogue assets, custom portraits) should live in your project. Optional starter prefabs are available via **Samples → Basic Setup**.

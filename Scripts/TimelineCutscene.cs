@@ -669,6 +669,26 @@ namespace RAXY.Narrative
 
                             PlayableDirector.SetGenericBinding(track, binder.colorOverlayManager);
                             break;
+
+                        case TrackBindType.TextOverlayManager:
+                            if (track is not TextOverlayTrack)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] Track '{entry.trackName}' bukan TextOverlayTrack.",
+                                    binder);
+                                break;
+                            }
+
+                            if (binder.textOverlayManager == null)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] TrackBinder untuk '{entry.trackName}' tidak punya TextOverlayManager.",
+                                    binder);
+                                break;
+                            }
+
+                            PlayableDirector.SetGenericBinding(track, binder.textOverlayManager);
+                            break;
                     }
                 }
             }

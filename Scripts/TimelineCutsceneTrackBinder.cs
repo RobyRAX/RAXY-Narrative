@@ -23,6 +23,10 @@ namespace RAXY.Narrative
         public ColorOverlayManager colorOverlayManager;
 
         [TitleGroup("Track Ref")]
+        [ShowIf("@IsTextOverlayManagerTrackBind")]
+        public TextOverlayManager textOverlayManager;
+
+        [TitleGroup("Track Ref")]
         [TableList(AlwaysExpanded = true, ShowIndexLabels = true)]
         public List<TrackBindEntry> trackBinds;
 
@@ -123,6 +127,24 @@ namespace RAXY.Narrative
                 }
 
                 return containColorOverlayManager;
+            }
+        }
+
+        public bool IsTextOverlayManagerTrackBind
+        {
+            get
+            {
+                bool containTextOverlayManager = false;
+                foreach (var entry in trackBinds)
+                {
+                    if (entry.trackBindType == TrackBindType.TextOverlayManager)
+                    {
+                        containTextOverlayManager = true;
+                        break;
+                    }
+                }
+
+                return containTextOverlayManager;
             }
         }
 
@@ -247,6 +269,7 @@ namespace RAXY.Narrative
     {
         Animation,
         CinemachineBrain,
-        ColorOverlayManager
+        ColorOverlayManager,
+        TextOverlayManager
     }
 }

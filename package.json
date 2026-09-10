@@ -1,6 +1,6 @@
 {
   "name": "com.raxy.narrative",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "displayName": "RAXY Narrative",
   "author": {
     "name": "RobyRAX",
@@ -17,5 +17,12 @@
     "com.unity.timeline": "1.8.12",
     "com.unity.ugui": "2.0.0",
     "com.unity.cinemachine": "3.1.7"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Basic Setup",
+      "description": "Narrative Hub Manager (with text overlay), choice button, and portrait demo assets.",
+      "path": "Samples~/Basic Setup"
+    }
+  ]
 }
