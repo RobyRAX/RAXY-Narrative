@@ -35,18 +35,24 @@ namespace RAXY.Narrative
 
         enum ContentTab
         {
-            Dialogues = 0,
-            TimelineCutscenes = 1
+            FullscreenDialogue = 0,
+            BanterDialogue = 1,
+            TimelineCutscenes = 2
         }
 
-        static readonly string[] ContentTabLabels = { "Dialogues", "Timeline Cutscenes" };
+        static readonly string[] ContentTabLabels =
+        {
+            "Fullscreen Dialogue",
+            "Banter Dialogue",
+            "Timeline Cutscenes"
+        };
 
         readonly List<DialogueEntry> _dialogues = new();
         readonly List<CutsceneEntry> _cutscenes = new();
         readonly Dictionary<string, int> _collectionIndexByPath = new();
         readonly Dictionary<string, int> _timelineIndexByPath = new();
 
-        ContentTab _contentTab = ContentTab.Dialogues;
+        ContentTab _contentTab = ContentTab.FullscreenDialogue;
         Vector2 _listScroll;
         Vector2 _cutsceneScroll;
         string _filter = "";
@@ -90,7 +96,8 @@ namespace RAXY.Narrative
 
                 switch (_contentTab)
                 {
-                    case ContentTab.Dialogues:
+                    case ContentTab.FullscreenDialogue:
+                    case ContentTab.BanterDialogue:
                         DrawDialogueList();
                         break;
                     case ContentTab.TimelineCutscenes:
@@ -167,19 +174,47 @@ namespace RAXY.Narrative
             if (refresh)
                 RefreshAll();
 
-            string countLabel = _contentTab == ContentTab.Dialogues
-                ? $"{_dialogues.Count} dialogues"
-                : $"{_cutscenes.Count} cutscene prefabs";
+            string countLabel;
+            if (TryGetActiveDialogueKind(out DialogueKind kind))
+            {
+                int count = 0;
+                for (int i = 0; i < _dialogues.Count; i++)
+                {
+                    if (_dialogues[i].Kind == kind)
+                        count++;
+                }
+
+                countLabel = kind == DialogueKind.Fullscreen
+                    ? $"{count} fullscreen"
+                    : $"{count} banter";
+            }
+            else
+            {
+                countLabel = $"{_cutscenes.Count} cutscene prefabs";
+            }
+
             RaxyHubGui.DrawCountChip(countLabel);
         }
 
         void DrawDialogueList()
         {
-            if (_dialogues.Count == 0)
+            if (!TryGetActiveDialogueKind(out DialogueKind kind))
+                return;
+
+            int kindTotal = 0;
+            for (int i = 0; i < _dialogues.Count; i++)
             {
+                if (_dialogues[i].Kind == kind)
+                    kindTotal++;
+            }
+
+            if (kindTotal == 0)
+            {
+                string missing = kind == DialogueKind.Fullscreen
+                    ? "No FullscreenDialogueDataSO found."
+                    : "No BanterDialogueDataSO found.";
                 EditorGUILayout.HelpBox(
-                    "No FullscreenDialogueDataSO / BanterDialogueDataSO found.\n" +
-                    "Create via Assets > Create > RAXY > Narrative.",
+                    missing + "\nCreate via Assets > Create > RAXY > Narrative.",
                     MessageType.Info);
                 return;
             }
@@ -189,7 +224,7 @@ namespace RAXY.Narrative
 
             foreach (var entry in _dialogues)
             {
-                if (entry.Asset == null)
+                if (entry.Asset == null || entry.Kind != kind)
                     continue;
 
                 if (!PassesFilter(entry))
@@ -207,7 +242,7 @@ namespace RAXY.Narrative
         void DrawDialogueRow(DialogueEntry entry, bool hasHub)
         {
             RaxyHubGui.BeginCard();
-            RaxyHubGui.DrawTitleRow(entry.DisplayName, entry.Kind.ToString());
+            RaxyHubGui.DrawTitleRow(entry.DisplayName);
             RaxyHubGui.DrawMutedPath(entry.FolderPath);
 
             if (entry.Kind == DialogueKind.Fullscreen &&
@@ -347,8 +382,23 @@ namespace RAXY.Narrative
 
             string q = _filter.Trim();
             return entry.DisplayName.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
-                   || entry.FolderPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
-                   || entry.Kind.ToString().IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+                   || entry.FolderPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        bool TryGetActiveDialogueKind(out DialogueKind kind)
+        {
+            switch (_contentTab)
+            {
+                case ContentTab.FullscreenDialogue:
+                    kind = DialogueKind.Fullscreen;
+                    return true;
+                case ContentTab.BanterDialogue:
+                    kind = DialogueKind.Banter;
+                    return true;
+                default:
+                    kind = default;
+                    return false;
+            }
         }
 
         bool PassesCutsceneFilter(CutsceneEntry entry)

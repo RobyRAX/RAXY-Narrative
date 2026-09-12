@@ -11,6 +11,7 @@ namespace RAXY.Narrative
         SerializedProperty dialogueCollectionIdProp;
         SerializedProperty modeProp;
         SerializedProperty triggerTimeProp;
+        SerializedProperty startOffsetProp;
 
         void OnEnable()
         {
@@ -18,6 +19,7 @@ namespace RAXY.Narrative
             dialogueCollectionIdProp = serializedObject.FindProperty("dialogueCollectionId");
             modeProp = serializedObject.FindProperty("mode");
             triggerTimeProp = serializedObject.FindProperty("triggerTime");
+            startOffsetProp = serializedObject.FindProperty("startOffset");
         }
 
         public override void OnInspectorGUI()
@@ -25,6 +27,16 @@ namespace RAXY.Narrative
             serializedObject.Update();
 
             EditorGUILayout.PropertyField(triggerTimeProp);
+
+            if (triggerTimeProp.enumValueIndex == (int)CutsceneDialogueTriggerTime.Start)
+            {
+                EditorGUILayout.PropertyField(
+                    startOffsetProp,
+                    new GUIContent(
+                        "Start Offset",
+                        "Trigger dialogue this many seconds before clip start."));
+            }
+
             EditorGUILayout.PropertyField(modeProp);
             EditorGUILayout.PropertyField(dialogueSOProp);
 

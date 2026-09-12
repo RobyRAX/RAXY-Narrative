@@ -341,6 +341,10 @@ namespace RAXY.Narrative
 
         void Awake()
         {
+#if UNITY_EDITOR
+            DestroyEditorHelperPrefabs();
+#endif
+
             if (PlayableDirector == null)
                 PlayableDirector = this.GetOrAddComponent<PlayableDirector>();
 
@@ -736,6 +740,7 @@ namespace RAXY.Narrative
                         end = clip.end,
                         mode = asset.mode,
                         triggerTime = asset.triggerTime,
+                        startOffset = asset.startOffset,
                         dialogueSO = asset.dialogueSO,
                         dialogueCollectionId = asset.dialogueCollectionId,
                         isPlayed = false
@@ -899,6 +904,7 @@ namespace RAXY.Narrative
         public double end;
         public CutsceneDialogueMode mode;
         public CutsceneDialogueTriggerTime triggerTime;
+        public float startOffset;
         public FullscreenDialogueDataSO dialogueSO;
         public string dialogueCollectionId;
         public bool isPlayed;
@@ -909,7 +915,7 @@ namespace RAXY.Narrative
             {
                 CutsceneDialogueTriggerTime.Middle => (start + end) * 0.5,
                 CutsceneDialogueTriggerTime.End => end,
-                _ => start
+                _ => System.Math.Max(0d, start - startOffset)
             };
         }
     }

@@ -26,6 +26,8 @@ namespace RAXY.Narrative
         public string dialogueCollectionId;
         public CutsceneDialogueMode mode = CutsceneDialogueMode.Repeat;
         public CutsceneDialogueTriggerTime triggerTime = CutsceneDialogueTriggerTime.Start;
+        [Min(0f)]
+        public float startOffset = 0f;
         CutsceneDialogueBehaviour template = new CutsceneDialogueBehaviour();
 
         public ClipCaps clipCaps => ClipCaps.Blending;
