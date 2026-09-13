@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using RAXY.Event;
 using RAXY.Utility;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -68,8 +67,9 @@ namespace RAXY.Narrative
         public DialogueChoiceUnityEvent onDialogueChoiceSelected = new();
 
         [TitleGroup("Test")]
-        [SerializeField]
-        NarrativeAction test_Action;
+        [SerializeReference]
+        [HideReferenceObjectPicker]
+        INarrativeAction test_Action;
 
         [TitleGroup("Test")]
         [Button]
@@ -319,12 +319,12 @@ namespace RAXY.Narrative
             onTimelineCutsceneEndName?.Invoke(cutscene != null ? cutscene.gameObject.name : null);
         }
 
-        public void Process_NarrativeAction(NarrativeAction action)
+        public void Process_NarrativeAction(INarrativeAction action)
         {
             Process_NarrativeActionAsync(action).Forget();
         }
 
-        public void Process_NarrativeActions(List<NarrativeAction> actions)
+        public void Process_NarrativeActions(List<INarrativeAction> actions)
         {
             if (actions == null)
                 return;
@@ -334,37 +334,17 @@ namespace RAXY.Narrative
         }
 
         public async UniTask Process_NarrativeActionAsync(
-            NarrativeAction action,
+            INarrativeAction action,
             CancellationToken ct = default)
         {
             if (action == null)
                 return;
 
-            switch (action.action)
-            {
-                case NarrativeActionType.PlayDialogue:
-                    await Process_PlayDialogueActionAsync(action.playDialogueParameter, ct);
-                    break;
-                case NarrativeActionType.EndDialogue:
-                    FullscreenDialogueView.EndDialogue();
-                    break;
-                case NarrativeActionType.ToggleDialogueBar:
-                    Process_ToggleDialogueBarAction(action.toggleDialogueBarParameter);
-                    break;
-                case NarrativeActionType.TriggerDialogueChoice:
-                    await Process_TriggerDialogueChoiceActionAsync(action.triggerDialogueChoiceParameter, ct);
-                    break;
-                case NarrativeActionType.TriggerEventSO:
-                    Process_TriggerEventSoAction(action.triggerEventSOParamater);
-                    break;
-                case NarrativeActionType.PlayTimelineCutscene:
-                    Process_PlayTimelineCutsceneAction(action.playTimelineCutsceneParameter);
-                    break;
-            }
+            await action.ExecuteAsync(ct);
         }
 
         public async UniTask Process_NarrativeActionsAsync(
-            List<NarrativeAction> actions,
+            List<INarrativeAction> actions,
             CancellationToken ct = default)
         {
             if (actions == null)
@@ -375,106 +355,6 @@ namespace RAXY.Narrative
                 ct.ThrowIfCancellationRequested();
                 await Process_NarrativeActionAsync(action, ct);
             }
-        }
-
-        async UniTask Process_PlayDialogueActionAsync(PlayDialogueParameter param, CancellationToken ct)
-        {
-            if (param == null)
-                return;
-
-            // Jangan teruskan token playthrough lama.
-            // Nested PlayAsync akan cancel _playCts outer; kalau token itu di-link ke play baru,
-            // play baru langsung cancelled dan stuck.
-            await PlayFullscreenDialogueAsync(param.dialogueSO, param.collectionId);
-        }
-
-        async UniTask Process_TriggerDialogueChoiceActionAsync(
-            TriggerDialogueChoiceParameter param,
-            CancellationToken ct)
-        {
-            if (param == null)
-                return;
-
-            if (DialogueChoiceView == null)
-            {
-                Debug.LogWarning("[NarrativeHubManager] DialogueChoiceView belum di-assign — TriggerDialogueChoice di-skip.", this);
-                return;
-            }
-
-            var entries = param.choiceEntries;
-            if (entries == null || entries.Count == 0)
-            {
-                Debug.LogWarning("[NarrativeHubManager] TriggerDialogueChoice choiceEntries kosong.", this);
-                return;
-            }
-
-            int selectedIndex = await PlayDialogueChoiceAsync(entries, ct);
-            if (selectedIndex < 0 || selectedIndex >= entries.Count)
-                return;
-
-            var choice = entries[selectedIndex];
-            if (choice?.narrativeActions == null || choice.narrativeActions.Count == 0)
-            {
-                Debug.LogWarning(
-                    $"[NarrativeHubManager] Choice index {selectedIndex} tidak punya narrativeActions.",
-                    this);
-                return;
-            }
-
-            // Jangan ikat ke token dialogue outer — nested PlayTimelineCutscene bisa
-            // memicu PlayFullscreenDialogue baru yang cancel _playCts lama.
-            await Process_NarrativeActionsAsync(choice.narrativeActions, CancellationToken.None);
-        }
-
-        void Process_ToggleDialogueBarAction(ToggleDialogueBarParameter param)
-        {
-            if (param == null)
-                return;
-
-            if (FullscreenDialogueView == null)
-            {
-                Debug.LogWarning("[NarrativeHubManager] FullscreenDialogueView belum di-assign.", this);
-                return;
-            }
-
-            if (param.setActive)
-                FullscreenDialogueView.ShowDialogueBar();
-            else
-                FullscreenDialogueView.HideDialogueBar();
-        }
-
-        void Process_TriggerEventSoAction(EventSoRaiser raiser)
-        {
-            if (raiser == null)
-                return;
-
-            raiser.Raise();
-        }
-
-        void Process_PlayTimelineCutsceneAction(PlayTimelineCutsceneParameter param)
-        {
-            if (param == null)
-            {
-                Debug.LogWarning("[NarrativeHubManager] PlayTimelineCutscene parameter null.", this);
-                return;
-            }
-
-            var cutscene = param.ResolveCutscene();
-            if (cutscene == null)
-            {
-                Debug.LogWarning(
-                    $"[NarrativeHubManager] PlayTimelineCutscene cutscene null (name='{param.CutsceneName}').",
-                    this);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(param.timelineId))
-            {
-                Debug.LogWarning("[NarrativeHubManager] PlayTimelineCutscene timelineId kosong.", this);
-                return;
-            }
-
-            PlayTimelineCutscene(cutscene, param.timelineId);
         }
     }
 }

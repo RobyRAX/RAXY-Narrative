@@ -119,8 +119,10 @@ namespace RAXY.Narrative
         public PortraitStateSetterGroup portraitSetting_OnStart = new();
 
         [TitleGroup("On Start - Narrative Action")]
-        [ListDrawerSettings(Expanded = true, ListElementLabelName = "action")]
-        public List<NarrativeAction> narrativeActions_OnStart;
+        [SerializeReference]
+        [HideReferenceObjectPicker]
+        [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
+        public List<INarrativeAction> narrativeActions_OnStart;
 
         [TitleGroup("Dialogue Lines")]
         [SerializeField]
@@ -129,9 +131,10 @@ namespace RAXY.Narrative
         List<DialogueLineWithPortrait> dialogueLines;
 
         [TitleGroup("On Complete - Narrative Action")]
-        [OnCollectionChanged(After = nameof(OnNarrativeActionsOnCompleteChanged))]
-        [ListDrawerSettings(Expanded = true, ListElementLabelName = "action")]
-        public List<NarrativeAction> narrativeActions_OnComplete;
+        [SerializeReference]
+        [HideReferenceObjectPicker]
+        [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
+        public List<INarrativeAction> narrativeActions_OnComplete;
 
         public string DialogueCollectionId => dialogueCollectionId;
         public List<DialogueLine> DialogueLines
@@ -187,8 +190,6 @@ namespace RAXY.Narrative
             cachedParentSO = parentSO;
             cachedActors = actors;
             portraitSetting_OnStart.SetupActors(actors, true);
-            NarrativeAction.BindPlayDialogueToParent(narrativeActions_OnStart, parentSO);
-            NarrativeAction.BindPlayDialogueToParent(narrativeActions_OnComplete, parentSO);
 
             if (dialogueLines != null)
             {
@@ -208,17 +209,8 @@ namespace RAXY.Narrative
             foreach (var line in dialogueLines)
                 line.SetupEditor(cachedParentSO, cachedActors);
         }
-
-        void OnNarrativeActionsOnCompleteChanged(CollectionChangeInfo info)
-        {
-            if (info.ChangeType != CollectionChangeType.Add && info.ChangeType != CollectionChangeType.Insert)
-                return;
-
-            NarrativeAction.BindPlayDialogueToParent(narrativeActions_OnComplete, cachedParentSO);
-        }
 #else
         void OnDialogueLinesChanged() { }
-        void OnNarrativeActionsOnCompleteChanged() { }
 #endif
     }
 
@@ -407,8 +399,10 @@ namespace RAXY.Narrative
 
         [TitleGroup("On Enter - Narrative Action")]
         [PropertyOrder(-1)]
-        [ListDrawerSettings(Expanded = true, ListElementLabelName = "action")]
-        public List<NarrativeAction> narrativeActions_OnEnter;
+        [SerializeReference]
+        [HideReferenceObjectPicker]
+        [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
+        public List<INarrativeAction> narrativeActions_OnEnter;
 
         [TitleGroup("Setting")]
         [SerializeField]
@@ -426,7 +420,6 @@ namespace RAXY.Narrative
         {
             SetupEditor(actors);
             portraitSetting_OnEnter.SetupActors(actors);
-            NarrativeAction.BindPlayDialogueToParent(narrativeActions_OnEnter, parentSO);
         }
 #endif
     }

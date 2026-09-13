@@ -11,18 +11,11 @@ namespace RAXY.Narrative
     {
         public StringProvider lineProvider;
 
-        // SerializeReference breaks the NarrativeAction ↔ DialogueChoiceEntry
-        // value-nesting cycle that triggers Unity's inspector recursion cutoff.
         [SerializeReference]
         [HideReferenceObjectPicker]
-        [ListDrawerSettings(
-            Expanded = true,
-            ListElementLabelName = "Label",
-            CustomAddFunction = nameof(AddNarrativeAction))]
-        public List<NarrativeAction> narrativeActions = new();
+        [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
+        public List<INarrativeAction> narrativeActions = new();
 
         public string Label => lineProvider.String;
-
-        NarrativeAction AddNarrativeAction() => new NarrativeAction();
     }
 }

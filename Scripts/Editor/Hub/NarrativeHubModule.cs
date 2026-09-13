@@ -53,8 +53,7 @@ namespace RAXY.Narrative
         readonly Dictionary<string, int> _timelineIndexByPath = new();
 
         ContentTab _contentTab = ContentTab.FullscreenDialogue;
-        Vector2 _listScroll;
-        Vector2 _cutsceneScroll;
+        Vector2 _scroll;
         string _filter = "";
 
         public string Id => "narrative";
@@ -91,6 +90,8 @@ namespace RAXY.Narrative
                 _contentTab = (ContentTab)GUILayout.Toolbar((int)_contentTab, ContentTabLabels);
                 EditorGUILayout.Space(8f);
 
+                _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
+
                 DrawToolbar();
                 EditorGUILayout.Space(6f);
 
@@ -101,9 +102,13 @@ namespace RAXY.Narrative
                         DrawDialogueList();
                         break;
                     case ContentTab.TimelineCutscenes:
+                        DrawCutsceneDefaultsSection();
+                        EditorGUILayout.Space(10f);
                         DrawCutsceneSection();
                         break;
                 }
+
+                EditorGUILayout.EndScrollView();
             }
         }
 
@@ -135,9 +140,6 @@ namespace RAXY.Narrative
                 if (RaxyHubGui.PrimaryButton("Find Narrative Hub Instance"))
                     FindNarrativeHubInstance();
             }
-
-            EditorGUILayout.Space(10f);
-            DrawCutsceneDefaultsSection();
         }
 
         void DrawCutsceneDefaultsSection()
@@ -166,6 +168,55 @@ namespace RAXY.Narrative
             {
                 so.ApplyModifiedProperties();
             }
+
+            EditorGUILayout.Space(4f);
+            using (new EditorGUI.DisabledScope(_cutscenes.Count == 0))
+            {
+                if (RaxyHubGui.PrimaryButton("Apply Defaults to All Cutscenes"))
+                    ApplyDefaultHelpersToAllCutscenes();
+            }
+        }
+
+        void ApplyDefaultHelpersToAllCutscenes()
+        {
+            RefreshCutscenes();
+
+            int total = _cutscenes.Count;
+            if (total == 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Apply Default Helpers",
+                    "No TimelineCutscene prefabs found in the project.",
+                    "OK");
+                return;
+            }
+
+            bool confirmed = EditorUtility.DisplayDialog(
+                "Apply Default Helpers",
+                $"Overwrite Editor Helper Prefabs on all {total} Timeline Cutscene(s) in the list?\n\n" +
+                "Existing helper prefab lists will be replaced with the Default Helper Prefabs.",
+                "Apply",
+                "Cancel");
+
+            if (!confirmed)
+                return;
+
+            var defaults = NarrativeEditorSettings.instance.DefaultEditorHelperPrefabs;
+            int updated = 0;
+
+            for (int i = 0; i < _cutscenes.Count; i++)
+            {
+                var cutscene = _cutscenes[i].Cutscene;
+                if (cutscene == null)
+                    continue;
+
+                Undo.RecordObject(cutscene, "Apply Default Editor Helpers");
+                cutscene.ApplyEditorHelperPrefabs(defaults);
+                updated++;
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[NarrativeHub] Applied Default Helper Prefabs to {updated}/{total} Timeline Cutscene(s).");
         }
 
         void DrawToolbar()
@@ -220,7 +271,6 @@ namespace RAXY.Narrative
             }
 
             bool hasHub = NarrativeHubManager.Instance != null;
-            _listScroll = EditorGUILayout.BeginScrollView(_listScroll, GUILayout.ExpandHeight(true));
 
             foreach (var entry in _dialogues)
             {
@@ -232,8 +282,6 @@ namespace RAXY.Narrative
 
                 DrawDialogueRow(entry, hasHub);
             }
-
-            EditorGUILayout.EndScrollView();
 
             if (!hasHub)
                 RaxyHubGui.DrawHint("Play / End disabled until Narrative Hub is linked.");
@@ -310,8 +358,6 @@ namespace RAXY.Narrative
                 return;
             }
 
-            _cutsceneScroll = EditorGUILayout.BeginScrollView(_cutsceneScroll, GUILayout.ExpandHeight(true));
-
             foreach (var entry in _cutscenes)
             {
                 if (entry.Cutscene == null)
@@ -322,8 +368,6 @@ namespace RAXY.Narrative
 
                 DrawCutsceneRow(entry, hasHub);
             }
-
-            EditorGUILayout.EndScrollView();
 
             if (!hasHub)
                 RaxyHubGui.DrawHint("Cutscene Play disabled until Narrative Hub is linked.");

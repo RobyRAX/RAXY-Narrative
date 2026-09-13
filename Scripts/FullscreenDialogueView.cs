@@ -220,7 +220,7 @@ namespace RAXY.Narrative
             }
         }
 
-        async UniTask ProcessNarrativeActionsAsync(List<NarrativeAction> actions, CancellationToken ct)
+        async UniTask ProcessNarrativeActionsAsync(List<INarrativeAction> actions, CancellationToken ct)
         {
             if (actions == null || actions.Count == 0)
                 return;

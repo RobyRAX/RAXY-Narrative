@@ -1,6 +1,6 @@
 {
   "name": "com.raxy.narrative",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "displayName": "RAXY Narrative",
   "author": {
     "name": "RobyRAX",
@@ -21,7 +21,7 @@
   "samples": [
     {
       "displayName": "Basic Setup",
-      "description": "Narrative Hub Manager (with text overlay), choice button, and portrait demo assets.",
+      "description": "Narrative Hub, Color Overlay, and Text Overlay managers, choice button, and portrait demo actors.",
       "path": "Samples~/Basic Setup"
     }
   ]

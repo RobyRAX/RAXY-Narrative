@@ -23,7 +23,12 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 
 ## Samples
 
-Demo hub, choice button, and portrait assets ship as a Package Manager sample (not auto-imported).
+Starter prefabs ship as a Package Manager sample (not auto-imported):
+
+- **Narrative Hub Manager** — fullscreen/banter dialogue, choices, cutscene runner
+- **Color Overlay Manager** / **Text Overlay Manager** — separate overlay singletons for timeline tracks
+- **Choice Btn** — dialogue choice button prefab
+- **Actor/** — demo portrait actors (Hoshino, Shiroko) with sprites and prefabs
 
 1. Open **Window → Package Manager**.
 2. Select **RAXY Narrative**.
@@ -53,4 +58,4 @@ Demo hub, choice button, and portrait assets ship as a Package Manager sample (n
 
 ## Notes
 
-Game-specific content (scenes, dialogue assets, custom portraits) should live in your project. Optional starter prefabs are available via **Samples → Basic Setup**.
+Game-specific content (scenes, dialogue assets, custom portraits) should live in your project. Optional starter prefabs (hub + overlays + actors) are available via **Samples → Basic Setup**.
