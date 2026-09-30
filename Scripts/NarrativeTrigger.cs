@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using RAXY.Narrative;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace RAXY.Narrative
 {
@@ -38,6 +39,16 @@ namespace RAXY.Narrative
         [SerializeField]
         BanterDialogueDataSO banterDialogueDataSO;
 
+        [TitleGroup("Events")]
+        public UnityEvent onComplete = new();
+
+        TimelineCutscene _expectedCutscene;
+
+        void OnDisable()
+        {
+            UnsubscribeComplete();
+        }
+
         [TitleGroup("Debug Functions")]
         [Button]
         public void Trigger()
@@ -49,57 +60,109 @@ namespace RAXY.Narrative
                 return;
             }
 
+            UnsubscribeComplete();
+
             switch (narrativeType)
             {
                 case NarrativeType.TimelineCutscene:
-                    TriggerTimelineCutscene(hub);
+                    if (TriggerTimelineCutscene(hub))
+                        hub.OnTimelineCutsceneEnd += HandleTimelineCutsceneEnd;
                     break;
                 case NarrativeType.FullscreenDialogue:
-                    TriggerFullscreenDialogue(hub);
+                    if (TriggerFullscreenDialogue(hub))
+                        hub.OnFullscreenDialogueEnd += HandleFullscreenDialogueEnd;
                     break;
                 case NarrativeType.BanterDialogue:
-                    TriggerBanterDialogue(hub);
+                    if (TriggerBanterDialogue(hub))
+                        hub.OnBanterDialogueEnd += HandleBanterDialogueEnd;
                     break;
             }
         }
 
-        void TriggerTimelineCutscene(NarrativeHubManager hub)
+        bool TriggerTimelineCutscene(NarrativeHubManager hub)
         {
             if (timelineCutscene == null)
             {
                 Debug.LogWarning("[NarrativeTrigger] TimelineCutscene belum di-assign.", this);
-                return;
+                return false;
             }
 
             if (hub.TimelineCutsceneRunner == null)
             {
                 Debug.LogWarning("[NarrativeTrigger] TimelineCutsceneRunner belum di-assign di NarrativeHubManager.", this);
-                return;
+                return false;
             }
 
             hub.TimelineCutsceneRunner.PlayCutscene(timelineCutscene, timelineId);
+            _expectedCutscene = hub.TimelineCutsceneRunner.CurrentCutscene;
+            return _expectedCutscene != null;
         }
 
-        void TriggerFullscreenDialogue(NarrativeHubManager hub)
+        bool TriggerFullscreenDialogue(NarrativeHubManager hub)
         {
             if (fullscreenDialogueDataSO == null)
             {
                 Debug.LogWarning("[NarrativeTrigger] FullscreenDialogueDataSO belum di-assign.", this);
-                return;
+                return false;
             }
 
             hub.PlayFullscreenDialogue(fullscreenDialogueDataSO, collectionId);
+            return hub.FullscreenDialogueView != null;
         }
 
-        void TriggerBanterDialogue(NarrativeHubManager hub)
+        bool TriggerBanterDialogue(NarrativeHubManager hub)
         {
             if (banterDialogueDataSO == null)
             {
                 Debug.LogWarning("[NarrativeTrigger] BanterDialogueDataSO belum di-assign.", this);
-                return;
+                return false;
             }
 
             hub.PlayBanterDialogue(banterDialogueDataSO);
+            return hub.BanterDialogueView != null;
+        }
+
+        void HandleTimelineCutsceneEnd(TimelineCutscene cutscene)
+        {
+            if (cutscene != _expectedCutscene)
+                return;
+
+            Complete();
+        }
+
+        void HandleFullscreenDialogueEnd(FullscreenDialogueDataSO data, string endedCollectionId)
+        {
+            if (data != fullscreenDialogueDataSO || endedCollectionId != collectionId)
+                return;
+
+            Complete();
+        }
+
+        void HandleBanterDialogueEnd(BanterDialogueDataSO data)
+        {
+            if (data != banterDialogueDataSO)
+                return;
+
+            Complete();
+        }
+
+        void Complete()
+        {
+            UnsubscribeComplete();
+            onComplete?.Invoke();
+        }
+
+        void UnsubscribeComplete()
+        {
+            _expectedCutscene = null;
+
+            var hub = NarrativeHubManager.Instance;
+            if (hub == null)
+                return;
+
+            hub.OnTimelineCutsceneEnd -= HandleTimelineCutsceneEnd;
+            hub.OnFullscreenDialogueEnd -= HandleFullscreenDialogueEnd;
+            hub.OnBanterDialogueEnd -= HandleBanterDialogueEnd;
         }
 
         bool IsTimelineCutscene => narrativeType == NarrativeType.TimelineCutscene;
