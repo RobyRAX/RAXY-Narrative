@@ -44,10 +44,10 @@ namespace RAXY.Narrative
 
         TimelineCutscene _expectedCutscene;
 
-        void OnDisable()
-        {
-            UnsubscribeComplete();
-        }
+        // void OnDisable()
+        // {
+        //     UnsubscribeComplete();
+        // }
 
         [TitleGroup("Debug Functions")]
         [Button]
