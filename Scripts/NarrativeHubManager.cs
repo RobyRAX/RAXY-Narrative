@@ -216,7 +216,7 @@ namespace RAXY.Narrative
 
         [TitleGroup("Debug Functions")]
         [Button]
-        public void PlayTimelineCutscene(TimelineCutscene cutscene, string timelineId)
+        public void PlayTimelineCutscene(TimelineCutscene cutscene, string timelineId = null)
         {
             if (TimelineCutsceneRunner == null)
             {
@@ -227,6 +227,15 @@ namespace RAXY.Narrative
             if (cutscene == null)
             {
                 Debug.LogWarning("[NarrativeHubManager] TimelineCutscene null.", this);
+                return;
+            }
+
+            timelineId = cutscene.ResolveTimelineId(timelineId);
+            if (string.IsNullOrEmpty(timelineId))
+            {
+                Debug.LogWarning(
+                    "[NarrativeHubManager] timelineId kosong dan tidak ada timeline entry pertama yang valid.",
+                    cutscene);
                 return;
             }
 

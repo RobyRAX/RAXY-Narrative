@@ -44,12 +44,6 @@ namespace RAXY.Narrative
                 return UniTask.CompletedTask;
             }
 
-            if (string.IsNullOrEmpty(timelineId))
-            {
-                Debug.LogWarning("[PlayTimelineCutscene] timelineId kosong.");
-                return UniTask.CompletedTask;
-            }
-
             hub.PlayTimelineCutscene(resolved, timelineId);
             return UniTask.CompletedTask;
         }

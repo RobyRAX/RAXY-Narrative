@@ -159,7 +159,7 @@ namespace RAXY.Narrative
         [ShowInInspector]
         [PropertyOrder(1)]
         [HideReferenceObjectPicker]
-        readonly List<CutsceneDialogueClipStatus> dialogueClipStatuses = new List<CutsceneDialogueClipStatus>();
+        readonly List<PlayheadRegionStatus> playheadRegions = new List<PlayheadRegionStatus>();
 
 #if UNITY_EDITOR
         [TitleGroup("Editor Helper")]
@@ -301,7 +301,7 @@ namespace RAXY.Narrative
 
         bool cutsceneEndRaised;
         bool hubEventsBound;
-        CutsceneDialogueClipStatus pendingDialogueClip;
+        PlayheadRegionStatus pendingDialogueRegion;
         bool pendingDialogueHold;
 
         public event Action<TimelineCutscene> OnStarted;
@@ -371,21 +371,21 @@ namespace RAXY.Narrative
             if (PlayableDirector.timeUpdateMode != DirectorUpdateMode.Manual)
                 PlayableDirector.timeUpdateMode = DirectorUpdateMode.Manual;
 
-            RefreshDialogueClipStatuses();
+            RefreshPlayheadRegions();
 
             double previousTime = PlayableDirector.time;
             double time = previousTime + Time.deltaTime * playheadDirection;
             bool timeJumped = false;
 
-            bool wasInside = TryGetActiveWrapRegion(previousTime, out CutsceneDialogueClipStatus previousRegion);
-            bool inside = TryGetActiveWrapRegion(time, out CutsceneDialogueClipStatus region);
+            bool wasInside = TryGetActiveWrapRegion(previousTime, out PlayheadRegionStatus previousRegion);
+            bool inside = TryGetActiveWrapRegion(time, out PlayheadRegionStatus region);
 
             if (inside && !wasInside)
                 IsPlayheadWrapActive = true;
 
             if (IsPlayheadWrapActive && (inside || wasInside))
             {
-                CutsceneDialogueClipStatus activeRegion = inside ? region : previousRegion;
+                PlayheadRegionStatus activeRegion = inside ? region : previousRegion;
 
                 if (activeRegion.mode == CutsceneDialogueMode.Repeat)
                 {
@@ -455,24 +455,50 @@ namespace RAXY.Narrative
             IsPlayheadWrapActive = false;
             IsDialogueHoldActive = false;
             cutsceneEndRaised = false;
-            pendingDialogueClip = null;
+            pendingDialogueRegion = null;
             pendingDialogueHold = false;
             playheadDirection = 1;
-            RefreshDialogueClipStatuses(resetPlayed: true);
+            RefreshPlayheadRegions(resetPlayed: true);
             RefreshTrackBindings();
 
             PlayableDirector.timeUpdateMode = DirectorUpdateMode.Manual;
             PlayableDirector.extrapolationMode = DirectorWrapMode.Hold;
             PlayableDirector.time = 0;
+
+            if (TryGetActiveWrapRegion(0, out PlayheadRegionStatus loopRegionAtStart)
+                && loopRegionAtStart != null
+                && !loopRegionAtStart.isDialogueRegion)
+            {
+                IsPlayheadWrapActive = true;
+            }
+        }
+
+        /// <summary>
+        /// Returns <paramref name="timelineId"/> when set; otherwise the id of the first timeline entry in the list.
+        /// </summary>
+        public string ResolveTimelineId(string timelineId)
+        {
+            if (!string.IsNullOrEmpty(timelineId))
+                return timelineId;
+
+            if (timelines == null || timelines.Count == 0)
+                return null;
+
+            var first = timelines[0];
+            if (first == null || string.IsNullOrEmpty(first.id))
+                return null;
+
+            return first.id;
         }
 
         [TitleGroup("Debug Functions")]
         [Button]
         public void Play(string id)
         {
+            id = ResolveTimelineId(id);
             if (string.IsNullOrEmpty(id))
             {
-                Debug.LogWarning("[TimelineCutscene] Play dipanggil dengan id kosong.", this);
+                Debug.LogWarning("[TimelineCutscene] Play dipanggil tanpa timeline id yang valid.", this);
                 return;
             }
 
@@ -712,57 +738,89 @@ namespace RAXY.Narrative
                 binders[i]?.RestoreComponentToggles();
         }
 
-        void RefreshDialogueClipStatuses(bool resetPlayed = false)
+        void RefreshPlayheadRegions(bool resetPlayed = false)
         {
             var previousPlayed = resetPlayed
                 ? null
                 : BuildPlayedLookup();
 
-            dialogueClipStatuses.Clear();
+            playheadRegions.Clear();
 
             if (Timeline == null)
                 return;
 
             foreach (var track in Timeline.GetOutputTracks())
             {
-                if (track is not CutsceneDialogueTrack)
+                if (track is CutsceneDialogueTrack)
+                {
+                    AppendDialoguePlayheadRegions(track, previousPlayed);
+                    continue;
+                }
+
+                if (track is PlayheadLoopTrack)
+                    AppendPlayheadLoopRegions(track);
+            }
+        }
+
+        void AppendDialoguePlayheadRegions(TrackAsset track, Dictionary<string, bool> previousPlayed)
+        {
+            foreach (var clip in track.GetClips())
+            {
+                var asset = clip.asset as CutsceneDialogueClip;
+                if (asset == null)
                     continue;
 
-                foreach (var clip in track.GetClips())
+                var status = new PlayheadRegionStatus
                 {
-                    var asset = clip.asset as CutsceneDialogueClip;
-                    if (asset == null)
-                        continue;
+                    start = clip.start,
+                    end = clip.end,
+                    mode = asset.mode,
+                    triggerTime = asset.triggerTime,
+                    startOffset = asset.startOffset,
+                    dialogueSO = asset.dialogueSO,
+                    dialogueCollectionId = asset.dialogueCollectionId,
+                    isDialogueRegion = true,
+                    isPlayed = false
+                };
 
-                    var status = new CutsceneDialogueClipStatus
-                    {
-                        start = clip.start,
-                        end = clip.end,
-                        mode = asset.mode,
-                        triggerTime = asset.triggerTime,
-                        startOffset = asset.startOffset,
-                        dialogueSO = asset.dialogueSO,
-                        dialogueCollectionId = asset.dialogueCollectionId,
-                        isPlayed = false
-                    };
-
-                    if (previousPlayed != null
-                        && previousPlayed.TryGetValue(MakeClipKey(status.start, status.end), out bool wasPlayed))
-                    {
-                        status.isPlayed = wasPlayed;
-                    }
-
-                    dialogueClipStatuses.Add(status);
+                if (previousPlayed != null
+                    && previousPlayed.TryGetValue(MakeClipKey(status.start, status.end), out bool wasPlayed))
+                {
+                    status.isPlayed = wasPlayed;
                 }
+
+                playheadRegions.Add(status);
+            }
+        }
+
+        void AppendPlayheadLoopRegions(TrackAsset track)
+        {
+            foreach (var clip in track.GetClips())
+            {
+                var asset = clip.asset as PlayheadLoopClip;
+                if (asset == null)
+                    continue;
+
+                if (asset.mode == CutsceneDialogueMode.Pause)
+                    continue;
+
+                playheadRegions.Add(new PlayheadRegionStatus
+                {
+                    start = clip.start,
+                    end = clip.end,
+                    mode = asset.mode,
+                    isDialogueRegion = false,
+                    isPlayed = true
+                });
             }
         }
 
         Dictionary<string, bool> BuildPlayedLookup()
         {
             var lookup = new Dictionary<string, bool>();
-            for (int i = 0; i < dialogueClipStatuses.Count; i++)
+            for (int i = 0; i < playheadRegions.Count; i++)
             {
-                var status = dialogueClipStatuses[i];
+                var status = playheadRegions[i];
                 if (status == null)
                     continue;
 
@@ -782,10 +840,10 @@ namespace RAXY.Narrative
 
             bool forward = time > previousTime;
 
-            for (int i = 0; i < dialogueClipStatuses.Count; i++)
+            for (int i = 0; i < playheadRegions.Count; i++)
             {
-                var status = dialogueClipStatuses[i];
-                if (status == null || status.isPlayed)
+                var status = playheadRegions[i];
+                if (status == null || !status.isDialogueRegion || status.isPlayed)
                     continue;
 
                 double triggerAt = status.GetTriggerTime();
@@ -798,7 +856,7 @@ namespace RAXY.Narrative
             }
         }
 
-        void HandleCutsceneDialogueClip(CutsceneDialogueClipStatus status)
+        void HandleCutsceneDialogueClip(PlayheadRegionStatus status)
         {
             if (status == null || status.isPlayed)
                 return;
@@ -820,7 +878,7 @@ namespace RAXY.Narrative
                 return;
             }
 
-            pendingDialogueClip = status;
+            pendingDialogueRegion = status;
             pendingDialogueHold = status.mode == CutsceneDialogueMode.Pause;
             if (pendingDialogueHold)
                 IsDialogueHoldActive = true;
@@ -832,17 +890,17 @@ namespace RAXY.Narrative
 
         void HandleFullscreenDialogueEnd(FullscreenDialogueDataSO data, string collectionId)
         {
-            if (pendingDialogueClip == null)
+            if (pendingDialogueRegion == null)
                 return;
 
-            if (pendingDialogueClip.dialogueSO != data)
+            if (pendingDialogueRegion.dialogueSO != data)
                 return;
 
-            if (!string.Equals(pendingDialogueClip.dialogueCollectionId, collectionId, StringComparison.Ordinal))
+            if (!string.Equals(pendingDialogueRegion.dialogueCollectionId, collectionId, StringComparison.Ordinal))
                 return;
 
-            var clip = pendingDialogueClip;
-            pendingDialogueClip = null;
+            var clip = pendingDialogueRegion;
+            pendingDialogueRegion = null;
 
             if (pendingDialogueHold)
             {
@@ -854,11 +912,11 @@ namespace RAXY.Narrative
                 DisablePlayheadWrap();
         }
 
-        bool TryGetActiveWrapRegion(double time, out CutsceneDialogueClipStatus region)
+        bool TryGetActiveWrapRegion(double time, out PlayheadRegionStatus region)
         {
-            for (int i = 0; i < dialogueClipStatuses.Count; i++)
+            for (int i = 0; i < playheadRegions.Count; i++)
             {
-                var candidate = dialogueClipStatuses[i];
+                var candidate = playheadRegions[i];
                 if (candidate == null)
                     continue;
 
@@ -894,29 +952,6 @@ namespace RAXY.Narrative
             }
 
             id = timeline.name;
-        }
-    }
-
-    [Serializable]
-    public class CutsceneDialogueClipStatus
-    {
-        public double start;
-        public double end;
-        public CutsceneDialogueMode mode;
-        public CutsceneDialogueTriggerTime triggerTime;
-        public float startOffset;
-        public FullscreenDialogueDataSO dialogueSO;
-        public string dialogueCollectionId;
-        public bool isPlayed;
-
-        public double GetTriggerTime()
-        {
-            return triggerTime switch
-            {
-                CutsceneDialogueTriggerTime.Middle => (start + end) * 0.5,
-                CutsceneDialogueTriggerTime.End => end,
-                _ => System.Math.Max(0d, start - startOffset)
-            };
         }
     }
 }

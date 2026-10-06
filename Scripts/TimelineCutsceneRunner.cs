@@ -57,10 +57,16 @@ namespace RAXY.Narrative
 
             SubscribeCurrentCutscene();
 
-            if (!string.IsNullOrEmpty(timelineId))
-                CurrentCutscene.Play(timelineId);
-            else
-                CurrentCutscene.PlayFromStart();
+            var resolvedTimelineId = CurrentCutscene.ResolveTimelineId(timelineId);
+            if (string.IsNullOrEmpty(resolvedTimelineId))
+            {
+                Debug.LogWarning(
+                    "[TimelineCutsceneRunner] timelineId kosong dan tidak ada timeline entry pertama yang valid.",
+                    CurrentCutscene);
+                return;
+            }
+
+            CurrentCutscene.Play(resolvedTimelineId);
         }
 
         TimelineCutscene ResolveCutsceneInstance(TimelineCutscene cutscene)

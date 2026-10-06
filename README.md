@@ -10,6 +10,7 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 - **DialoguePortrait / PortraitStateSetter** — animated multi-part portraits (DOTween)
 - **FullscreenDialogueDataSO / BanterDialogueDataSO / DialogueActorSO** — ScriptableObject dialogue data
 - **TimelineCutscene / CutsceneDialogueTrack** — timeline cutscenes with dialogue clips
+- **PlayheadLoopTrack** — timeline regions that loop the playhead (Repeat/Ping Pong) without dialogue; proceed via `TimelineCutscene.DisablePlayheadWrap()`
 - **ColorOverlayManager / TextOverlayManager** — fullscreen color and caption text fades
 - **ColorOverlayTrack / TextOverlayTrack** — Timeline tracks for color and text overlays (bind via `TimelineCutsceneTrackBinder`)
 
@@ -20,6 +21,7 @@ RAXY Narrative provides hub-driven narrative playback for Unity: fullscreen and 
 3. Create cutscene assets via **Create > RAXY > Narrative > Cutscene Timeline** — prompts for a name, then creates a prefab (`TimelineCutscene` + `PlayableDirector`) and Timeline asset in the selected Project folder (fallback `Assets/`).
 4. Optional: set **Default Helper Prefabs** in **RAXY Project Hub → Narrative**; new cutscenes get those prefabs assigned to Editor Helper automatically.
 5. For timeline dialogue, use `CutsceneDialogueTrack` clips bound through `TimelineCutscene` / `TimelineCutsceneTrackBinder`.
+6. For playhead loop/hold without dialogue (e.g. wait for input), use `PlayheadLoopTrack` and call `DisablePlayheadWrap()` on the cutscene's `TimelineCutscene` when ready to continue.
 
 ## Samples
 
