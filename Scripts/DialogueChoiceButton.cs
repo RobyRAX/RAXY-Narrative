@@ -17,6 +17,9 @@ namespace RAXY.Narrative
         [SerializeField]
         TextMeshProUGUI choiceTxt;
 
+        [TitleGroup("Event")]
+        public UnityEvent OnSetup;
+
         [TitleGroup("Runtime")]
         [ShowInInspector]
         DialogueChoiceEntry entry;
@@ -37,6 +40,7 @@ namespace RAXY.Narrative
                 return;
 
             choiceTxt.text = entry?.lineProvider != null ? entry.lineProvider.String : string.Empty;
+            OnSetup?.Invoke();
         }
 
         public async UniTask SetupAsync(DialogueChoiceEntry entry, int index)
