@@ -58,6 +58,7 @@ namespace RAXY.Narrative
             }
 
             choiceTxt.text = await entry.lineProvider.GetStringAsync();
+            OnSetup?.Invoke();
         }
 
         public void BindClick(UnityAction onClick)
