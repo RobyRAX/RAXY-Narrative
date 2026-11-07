@@ -6,6 +6,7 @@
         "RAXY.Utility",
         "RAXY.Utility.Localization",
         "RAXY.UI",
+        "RAXY.Sequence",
         "RAXY.Core",
         "UniTask",
         "Unity.Addressables",

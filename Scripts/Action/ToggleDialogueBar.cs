@@ -6,14 +6,14 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class ToggleDialogueBar : INarrativeAction
+    public class ToggleDialogueBar : NarrativeActionBase
     {
         public bool setActive;
 
-        public string Label =>
+        public override string Label =>
             setActive ? "ToggleDialogueBar (Show)" : "ToggleDialogueBar (Hide)";
 
-        public UniTask ExecuteAsync(CancellationToken ct = default)
+        public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
             var hub = NarrativeHubManager.Instance;
             if (hub?.FullscreenDialogueView == null)

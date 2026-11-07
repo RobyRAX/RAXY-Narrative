@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using RAXY.Sequence;
 using RAXY.Utility;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -23,6 +24,9 @@ namespace RAXY.Narrative
 
     [Serializable]
     public class DialogueChoiceUnityEvent : UnityEvent<int> { }
+
+    [Serializable]
+    public class ProgrammableCutsceneUnityEvent : UnityEvent<ProgrammableCutsceneSO> { }
 
     public class NarrativeHubManager : Singleton<NarrativeHubManager>
     {
@@ -66,10 +70,16 @@ namespace RAXY.Narrative
         [FoldoutGroup("Unity Events/Dialogue Choice")]
         public DialogueChoiceUnityEvent onDialogueChoiceSelected = new();
 
+        [FoldoutGroup("Unity Events/Programmable Cutscene")]
+        public ProgrammableCutsceneUnityEvent onProgrammableCutsceneStart = new();
+
+        [FoldoutGroup("Unity Events/Programmable Cutscene")]
+        public ProgrammableCutsceneUnityEvent onProgrammableCutsceneEnd = new();
+
         [TitleGroup("Test")]
         [SerializeReference]
         [HideReferenceObjectPicker]
-        INarrativeAction test_Action;
+        ISequenceable test_Action;
 
         [TitleGroup("Test")]
         [Button]
@@ -85,6 +95,8 @@ namespace RAXY.Narrative
         public event Action<TimelineCutscene> OnTimelineCutsceneStart;
         public event Action<TimelineCutscene> OnTimelineCutsceneEnd;
         public event Action<int> OnDialogueChoiceSelected;
+        public event Action<ProgrammableCutsceneSO> OnProgrammableCutsceneStart;
+        public event Action<ProgrammableCutsceneSO> OnProgrammableCutsceneEnd;
 
         void OnEnable()
         {
@@ -242,6 +254,37 @@ namespace RAXY.Narrative
             TimelineCutsceneRunner.PlayCutscene(cutscene, timelineId);
         }
 
+        [TitleGroup("Debug Functions")]
+        [Button]
+        public void PlayProgrammableCutscene(ProgrammableCutsceneSO cutscene)
+        {
+            PlayProgrammableCutsceneAsync(cutscene).Forget();
+        }
+
+        public async UniTask PlayProgrammableCutsceneAsync(
+            ProgrammableCutsceneSO cutscene,
+            CancellationToken ct = default)
+        {
+            if (cutscene == null)
+            {
+                Debug.LogWarning("[NarrativeHubManager] cutscene is null.");
+                return;
+            }
+
+            OnProgrammableCutsceneStart?.Invoke(cutscene);
+            onProgrammableCutsceneStart?.Invoke(cutscene);
+
+            try
+            {
+                await ProgrammableCutsceneRunner.RunAsync(cutscene, ct);
+            }
+            finally
+            {
+                OnProgrammableCutsceneEnd?.Invoke(cutscene);
+                onProgrammableCutsceneEnd?.Invoke(cutscene);
+            }
+        }
+
         void BindViewEvents(bool bind)
         {
             if (FullscreenDialogueView != null)
@@ -328,12 +371,12 @@ namespace RAXY.Narrative
             onTimelineCutsceneEndName?.Invoke(cutscene != null ? cutscene.gameObject.name : null);
         }
 
-        public void Process_NarrativeAction(INarrativeAction action)
+        public void Process_NarrativeAction(ISequenceable action)
         {
             Process_NarrativeActionAsync(action).Forget();
         }
 
-        public void Process_NarrativeActions(List<INarrativeAction> actions)
+        public void Process_NarrativeActions(IReadOnlyList<ISequenceable> actions)
         {
             if (actions == null)
                 return;
@@ -342,8 +385,14 @@ namespace RAXY.Narrative
                 Process_NarrativeAction(action);
         }
 
+        [Obsolete("Use overload with IReadOnlyList<ISequenceable> instead.")]
+        public void Process_NarrativeActions(List<INarrativeAction> actions)
+        {
+            Process_NarrativeActions((IReadOnlyList<ISequenceable>)actions);
+        }
+
         public async UniTask Process_NarrativeActionAsync(
-            INarrativeAction action,
+            ISequenceable action,
             CancellationToken ct = default)
         {
             if (action == null)
@@ -353,17 +402,18 @@ namespace RAXY.Narrative
         }
 
         public async UniTask Process_NarrativeActionsAsync(
+            IReadOnlyList<ISequenceable> actions,
+            CancellationToken ct = default)
+        {
+            await SequenceRunner.RunAsync(actions, ct);
+        }
+
+        [Obsolete("Use overload with IReadOnlyList<ISequenceable> instead.")]
+        public UniTask Process_NarrativeActionsAsync(
             List<INarrativeAction> actions,
             CancellationToken ct = default)
         {
-            if (actions == null)
-                return;
-
-            foreach (var action in actions)
-            {
-                ct.ThrowIfCancellationRequested();
-                await Process_NarrativeActionAsync(action, ct);
-            }
+            return Process_NarrativeActionsAsync((IReadOnlyList<ISequenceable>)actions, ct);
         }
     }
 }

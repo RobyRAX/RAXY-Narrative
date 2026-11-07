@@ -8,14 +8,14 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class TriggerDialogueChoice : INarrativeAction
+    public class TriggerDialogueChoice : NarrativeActionBase
     {
         [ListDrawerSettings(ShowIndexLabels = true, Expanded = true, ListElementLabelName = "Label")]
         public List<DialogueChoiceEntry> choiceEntries = new();
 
-        public string Label => "TriggerDialogueChoice";
+        public override string Label => "TriggerDialogueChoice";
 
-        public async UniTask ExecuteAsync(CancellationToken ct = default)
+        public override async UniTask ExecuteAsync(CancellationToken ct = default)
         {
             var hub = NarrativeHubManager.Instance;
             if (hub == null)

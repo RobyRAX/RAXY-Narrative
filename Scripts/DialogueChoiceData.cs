@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RAXY.Sequence;
 using RAXY.Utility.Localization;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -14,7 +15,7 @@ namespace RAXY.Narrative
         [SerializeReference]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
-        public List<INarrativeAction> narrativeActions = new();
+        public List<ISequenceable> narrativeActions = new();
 
         public string Label => lineProvider.String;
     }

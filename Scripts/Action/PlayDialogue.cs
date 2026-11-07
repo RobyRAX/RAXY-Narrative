@@ -8,19 +8,19 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class PlayDialogue : INarrativeAction
+    public class PlayDialogue : NarrativeActionBase
     {
         public FullscreenDialogueDataSO dialogueSO;
 
         [ValueDropdown(nameof(CollectionIds))]
         public string collectionId;
 
-        public string Label =>
+        public override string Label =>
             dialogueSO != null
                 ? $"PlayDialogue ({dialogueSO.name})"
                 : "PlayDialogue";
 
-        public async UniTask ExecuteAsync(CancellationToken ct = default)
+        public override async UniTask ExecuteAsync(CancellationToken ct = default)
         {
             if (dialogueSO == null)
             {

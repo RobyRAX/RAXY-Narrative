@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using RAXY.Sequence;
 using RAXY.UI;
 using RAXY.Utility;
 using Sirenix.OdinInspector;
@@ -220,7 +221,7 @@ namespace RAXY.Narrative
             }
         }
 
-        async UniTask ProcessNarrativeActionsAsync(List<INarrativeAction> actions, CancellationToken ct)
+        async UniTask ProcessNarrativeActionsAsync(List<ISequenceable> actions, CancellationToken ct)
         {
             if (actions == null || actions.Count == 0)
                 return;

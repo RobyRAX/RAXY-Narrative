@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using RAXY.Sequence;
 using RAXY.Core.Addressable;
 using RAXY.Utility.Localization;
 using Sirenix.OdinInspector;
@@ -122,7 +123,7 @@ namespace RAXY.Narrative
         [SerializeReference]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
-        public List<INarrativeAction> narrativeActions_OnStart;
+        public List<ISequenceable> narrativeActions_OnStart;
 
         [TitleGroup("Dialogue Lines")]
         [SerializeField]
@@ -134,7 +135,7 @@ namespace RAXY.Narrative
         [SerializeReference]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
-        public List<INarrativeAction> narrativeActions_OnComplete;
+        public List<ISequenceable> narrativeActions_OnComplete;
 
         public string DialogueCollectionId => dialogueCollectionId;
         public List<DialogueLine> DialogueLines
@@ -402,7 +403,7 @@ namespace RAXY.Narrative
         [SerializeReference]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(Expanded = true, ListElementLabelName = "Label")]
-        public List<INarrativeAction> narrativeActions_OnEnter;
+        public List<ISequenceable> narrativeActions_OnEnter;
 
         [TitleGroup("Setting")]
         [SerializeField]

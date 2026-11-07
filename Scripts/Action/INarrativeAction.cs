@@ -1,12 +1,10 @@
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using System;
+using RAXY.Sequence;
 
 namespace RAXY.Narrative
 {
-    public interface INarrativeAction
+    [Obsolete("Use RAXY.Sequence.ISequenceable instead.")]
+    public interface INarrativeAction : ISequenceable
     {
-        string Label { get; }
-
-        UniTask ExecuteAsync(CancellationToken ct = default);
     }
 }

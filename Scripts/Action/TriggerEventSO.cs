@@ -7,15 +7,15 @@ using Sirenix.OdinInspector;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class TriggerEventSO : INarrativeAction
+    public class TriggerEventSO : NarrativeActionBase
     {
         [HideLabel]
         [HideReferenceObjectPicker]
         public EventSoRaiser eventRaiser;
 
-        public string Label => "TriggerEventSO";
+        public override string Label => "TriggerEventSO";
 
-        public UniTask ExecuteAsync(CancellationToken ct = default)
+        public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
             eventRaiser?.Raise();
             return UniTask.CompletedTask;

@@ -6,11 +6,11 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class EndDialogue : INarrativeAction
+    public class EndDialogue : NarrativeActionBase
     {
-        public string Label => "EndDialogue";
+        public override string Label => "EndDialogue";
 
-        public UniTask ExecuteAsync(CancellationToken ct = default)
+        public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
             var hub = NarrativeHubManager.Instance;
             if (hub?.FullscreenDialogueView == null)

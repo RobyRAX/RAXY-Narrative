@@ -39,10 +39,16 @@ namespace RAXY.Narrative
         [SerializeField]
         BanterDialogueDataSO banterDialogueDataSO;
 
+        [TitleGroup("Settings")]
+        [ShowIf(nameof(IsProgrammableCutscene))]
+        [SerializeField]
+        ProgrammableCutsceneSO programmableCutsceneSO;
+
         [TitleGroup("Events")]
         public UnityEvent onComplete = new();
 
         TimelineCutscene _expectedCutscene;
+        ProgrammableCutsceneSO _expectedProgrammableCutscene;
 
         // void OnDisable()
         // {
@@ -75,6 +81,10 @@ namespace RAXY.Narrative
                 case NarrativeType.BanterDialogue:
                     if (TriggerBanterDialogue(hub))
                         hub.OnBanterDialogueEnd += HandleBanterDialogueEnd;
+                    break;
+                case NarrativeType.ProgrammableCutscene:
+                    if (TriggerProgrammableCutscene(hub))
+                        hub.OnProgrammableCutsceneEnd += HandleProgrammableCutsceneEnd;
                     break;
             }
         }
@@ -122,6 +132,19 @@ namespace RAXY.Narrative
             return hub.BanterDialogueView != null;
         }
 
+        bool TriggerProgrammableCutscene(NarrativeHubManager hub)
+        {
+            if (programmableCutsceneSO == null)
+            {
+                Debug.LogWarning("[NarrativeTrigger] ProgrammableCutsceneSO belum di-assign.", this);
+                return false;
+            }
+
+            _expectedProgrammableCutscene = programmableCutsceneSO;
+            hub.PlayProgrammableCutscene(programmableCutsceneSO);
+            return true;
+        }
+
         void HandleTimelineCutsceneEnd(TimelineCutscene cutscene)
         {
             if (cutscene != _expectedCutscene)
@@ -146,6 +169,14 @@ namespace RAXY.Narrative
             Complete();
         }
 
+        void HandleProgrammableCutsceneEnd(ProgrammableCutsceneSO cutscene)
+        {
+            if (cutscene != _expectedProgrammableCutscene)
+                return;
+
+            Complete();
+        }
+
         void Complete()
         {
             UnsubscribeComplete();
@@ -155,6 +186,7 @@ namespace RAXY.Narrative
         void UnsubscribeComplete()
         {
             _expectedCutscene = null;
+            _expectedProgrammableCutscene = null;
 
             var hub = NarrativeHubManager.Instance;
             if (hub == null)
@@ -163,11 +195,13 @@ namespace RAXY.Narrative
             hub.OnTimelineCutsceneEnd -= HandleTimelineCutsceneEnd;
             hub.OnFullscreenDialogueEnd -= HandleFullscreenDialogueEnd;
             hub.OnBanterDialogueEnd -= HandleBanterDialogueEnd;
+            hub.OnProgrammableCutsceneEnd -= HandleProgrammableCutsceneEnd;
         }
 
         bool IsTimelineCutscene => narrativeType == NarrativeType.TimelineCutscene;
         bool IsFullscreenDialogue => narrativeType == NarrativeType.FullscreenDialogue;
         bool IsBanterDialogue => narrativeType == NarrativeType.BanterDialogue;
+        bool IsProgrammableCutscene => narrativeType == NarrativeType.ProgrammableCutscene;
 
 #if UNITY_EDITOR
         IEnumerable<string> TimelineIds => timelineCutscene != null ? timelineCutscene.TimelineIds : null;
@@ -182,6 +216,7 @@ namespace RAXY.Narrative
     {
         TimelineCutscene,
         FullscreenDialogue,
-        BanterDialogue
+        BanterDialogue,
+        ProgrammableCutscene
     }
 }

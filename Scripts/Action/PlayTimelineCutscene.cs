@@ -8,7 +8,7 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class PlayTimelineCutscene : INarrativeAction, ISerializationCallbackReceiver
+    public class PlayTimelineCutscene : NarrativeActionBase, ISerializationCallbackReceiver
     {
         [OnValueChanged(nameof(SyncCutsceneName))]
         public TimelineCutscene cutscene;
@@ -20,14 +20,14 @@ namespace RAXY.Narrative
         [ValueDropdown(nameof(TimelineIds))]
         public string timelineId;
 
-        public string Label =>
+        public override string Label =>
             !string.IsNullOrEmpty(timelineId)
                 ? $"PlayTimelineCutscene ({timelineId})"
                 : "PlayTimelineCutscene";
 
         public string CutsceneName => cutsceneName;
 
-        public UniTask ExecuteAsync(CancellationToken ct = default)
+        public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
             var hub = NarrativeHubManager.Instance;
             if (hub == null)
