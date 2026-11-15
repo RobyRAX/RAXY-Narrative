@@ -13,7 +13,15 @@ namespace RAXY.Narrative
         [HideLabel]
         public NarrativeObjectTarget target = new();
 
+        [LabelText("Start Mode")]
+        public NarrativeTransformStartMode startMode = NarrativeTransformStartMode.Current;
+
+        [ShowIf(nameof(UsesManualStart))]
+        [LabelText("Start")]
+        public Vector3 startRotation;
+
         [Tooltip("Target rotation in Euler angles.")]
+        [LabelText("To")]
         public Vector3 destinationRotation;
 
         [MinValue(0f)]
@@ -28,7 +36,11 @@ namespace RAXY.Narrative
         public Ease ease = Ease.Linear;
 
         public override string Label =>
-            $"RotateObject ({(target != null ? target.TargetDescription : "None")}) -> {destinationRotation} ({(isLocal ? "Local" : "World")}, {duration}s)";
+            $"RotateObject ({(target != null ? target.TargetDescription : "None")}) {StartDescription} -> {destinationRotation} ({(isLocal ? "Local" : "World")}, {duration}s)";
+
+        bool UsesManualStart => startMode == NarrativeTransformStartMode.Manual;
+
+        string StartDescription => UsesManualStart ? startRotation.ToString() : "Current";
 
         public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
@@ -39,6 +51,14 @@ namespace RAXY.Narrative
             {
                 Debug.LogWarning("[RotateObject] Skipping rotate because target could not be resolved.");
                 return UniTask.CompletedTask;
+            }
+
+            if (UsesManualStart)
+            {
+                if (isLocal)
+                    t.localEulerAngles = startRotation;
+                else
+                    t.eulerAngles = startRotation;
             }
 
             if (duration <= 0f)

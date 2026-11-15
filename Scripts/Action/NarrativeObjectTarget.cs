@@ -10,6 +10,12 @@ namespace RAXY.Narrative
         GameObjectName
     }
 
+    public enum NarrativeTransformStartMode
+    {
+        Current,
+        Manual
+    }
+
     [Serializable]
     public class NarrativeObjectTarget
     {

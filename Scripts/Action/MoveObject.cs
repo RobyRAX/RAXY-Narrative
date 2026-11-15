@@ -13,6 +13,14 @@ namespace RAXY.Narrative
         [HideLabel]
         public NarrativeObjectTarget target = new();
 
+        [LabelText("Start Mode")]
+        public NarrativeTransformStartMode startMode = NarrativeTransformStartMode.Current;
+
+        [ShowIf(nameof(UsesManualStart))]
+        [LabelText("Start")]
+        public Vector3 startPosition;
+
+        [LabelText("To")]
         public Vector3 destination;
 
         [MinValue(0f)]
@@ -25,7 +33,11 @@ namespace RAXY.Narrative
         public Ease ease = Ease.Linear;
 
         public override string Label =>
-            $"MoveObject ({(target != null ? target.TargetDescription : "None")}) -> {destination} ({(isLocal ? "Local" : "World")}, {duration}s)";
+            $"MoveObject ({(target != null ? target.TargetDescription : "None")}) {StartDescription} -> {destination} ({(isLocal ? "Local" : "World")}, {duration}s)";
+
+        bool UsesManualStart => startMode == NarrativeTransformStartMode.Manual;
+
+        string StartDescription => UsesManualStart ? startPosition.ToString() : "Current";
 
         public override UniTask ExecuteAsync(CancellationToken ct = default)
         {
@@ -36,6 +48,14 @@ namespace RAXY.Narrative
             {
                 Debug.LogWarning("[MoveObject] Skipping move because target could not be resolved.");
                 return UniTask.CompletedTask;
+            }
+
+            if (UsesManualStart)
+            {
+                if (isLocal)
+                    t.localPosition = startPosition;
+                else
+                    t.position = startPosition;
             }
 
             if (duration <= 0f)

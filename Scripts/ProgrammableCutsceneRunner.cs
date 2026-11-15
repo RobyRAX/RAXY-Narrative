@@ -62,7 +62,7 @@ namespace RAXY.Narrative
             if (actions == null || actions.Count == 0)
                 return;
 
-            var startedTasks = new List<UniTask>();
+            var pendingTasks = new List<UniTask>();
             Exception caughtException = null;
 
             try
@@ -79,15 +79,16 @@ namespace RAXY.Narrative
                     }
 
                     UniTask actionTask = ExecuteActionWithContextAsync(action, callPath, ct);
-                    startedTasks.Add(actionTask);
 
-                    if (i < actions.Count - 1)
+                    if (i < actions.Count - 1 && !action.OverrideNextActionTime)
                     {
-                        if (!action.OverrideNextActionTime)
-                        {
-                            await actionTask;
-                        }
-                        else
+                        await actionTask;
+                    }
+                    else
+                    {
+                        pendingTasks.Add(actionTask);
+
+                        if (i < actions.Count - 1)
                         {
                             float delay = Mathf.Max(0f, action.NextActionTime);
                             if (delay > 0f)
@@ -103,11 +104,11 @@ namespace RAXY.Narrative
                 caughtException = ex;
             }
 
-            if (startedTasks.Count > 0)
+            if (pendingTasks.Count > 0)
             {
                 try
                 {
-                    await UniTask.WhenAll(startedTasks);
+                    await UniTask.WhenAll(pendingTasks);
                 }
                 catch (Exception ex)
                 {
