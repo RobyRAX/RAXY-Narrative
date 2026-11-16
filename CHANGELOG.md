@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.3] - 2026-11-16
+
+- Removed duplicate `RAXY.Narrative.TriggerEventSO` action in favor of `RAXY.Sequence.TriggerEventSO`.
+- Updated `com.raxy.sequence` dependency to `1.1.0`.
+
 ## [1.2.0] - 2026-10-06
 
 - Add `PlayheadLoopTrack` / `PlayheadLoopClip` for playhead Repeat/Ping Pong without dialogue; proceed via `TimelineCutscene.DisablePlayheadWrap()`.
