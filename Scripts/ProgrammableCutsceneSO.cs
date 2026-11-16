@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using RAXY.Sequence;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -21,7 +20,14 @@ namespace RAXY.Narrative
         [ShowIf("@UnityEngine.Application.isPlaying")]
         void PlayInEditor()
         {
-            ProgrammableCutsceneRunner.RunAsync(this).Forget();
+            var hub = NarrativeHubManager.Instance;
+            if (hub == null)
+            {
+                Debug.LogWarning("[ProgrammableCutsceneSO] NarrativeHubManager is not available.", this);
+                return;
+            }
+
+            hub.PlayProgrammableCutscene(this);
         }
 #endif
     }

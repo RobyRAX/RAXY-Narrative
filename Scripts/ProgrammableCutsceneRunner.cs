@@ -90,7 +90,7 @@ namespace RAXY.Narrative
 
                         if (i < actions.Count - 1)
                         {
-                            float delay = Mathf.Max(0f, action.NextActionTime);
+                            float delay = Mathf.Max(0f, action.NextActionTimeOverrider);
                             if (delay > 0f)
                             {
                                 await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: ct);
