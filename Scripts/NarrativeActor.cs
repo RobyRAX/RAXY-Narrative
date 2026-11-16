@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RAXY.Sequence;
 using UnityEngine;
 
 namespace RAXY.Narrative
@@ -18,6 +19,12 @@ namespace RAXY.Narrative
         static readonly List<NarrativeActor> activeActors = new();
 
         public static IReadOnlyList<NarrativeActor> ActiveActors => activeActors;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void RegisterSequenceActorResolver()
+        {
+            SequenceObjectTarget.ActorIdResolver = FindActorTransform;
+        }
 
         void OnEnable()
         {
