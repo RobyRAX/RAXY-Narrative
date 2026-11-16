@@ -135,7 +135,7 @@ namespace RAXY.Narrative
 
             if (action is ActionGroup group)
             {
-                return group.ExecuteWithCallPathAsync(callPath, ct);
+                return RunActionsInternalAsync(group.actions, callPath, ct);
             }
 
             return action.ExecuteAsync(ct);
