@@ -8,7 +8,7 @@ using UnityEngine;
 namespace RAXY.Narrative
 {
     [Serializable]
-    public class PlayDialogue : NarrativeActionBase
+    public class PlayFullscreenDialogue : NarrativeActionBase
     {
         public FullscreenDialogueDataSO dialogueSO;
 
@@ -17,8 +17,8 @@ namespace RAXY.Narrative
 
         public override string Label =>
             dialogueSO != null
-                ? $"PlayDialogue ({dialogueSO.name})"
-                : "PlayDialogue";
+                ? $"PlayFullscreenDialogue ({dialogueSO.name})"
+                : "PlayFullscreenDialogue";
 
         public override async UniTask ExecuteAsync(CancellationToken ct = default)
         {
