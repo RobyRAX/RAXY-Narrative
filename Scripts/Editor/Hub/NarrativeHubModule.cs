@@ -33,22 +33,33 @@ namespace RAXY.Narrative
             public string DisplayName;
         }
 
+        struct ProgrammableCutsceneEntry
+        {
+            public ProgrammableCutsceneSO Asset;
+            public string AssetPath;
+            public string FolderPath;
+            public string DisplayName;
+        }
+
         enum ContentTab
         {
             FullscreenDialogue = 0,
             BanterDialogue = 1,
-            TimelineCutscenes = 2
+            TimelineCutscenes = 2,
+            ProgrammableCutscenes = 3
         }
 
         static readonly string[] ContentTabLabels =
         {
             "Fullscreen Dialogue",
             "Banter Dialogue",
-            "Timeline Cutscenes"
+            "Timeline Cutscenes",
+            "Programmable Cutscenes"
         };
 
         readonly List<DialogueEntry> _dialogues = new();
         readonly List<CutsceneEntry> _cutscenes = new();
+        readonly List<ProgrammableCutsceneEntry> _programmableCutscenes = new();
         readonly Dictionary<string, int> _collectionIndexByPath = new();
         readonly Dictionary<string, int> _timelineIndexByPath = new();
 
@@ -105,6 +116,9 @@ namespace RAXY.Narrative
                         DrawCutsceneDefaultsSection();
                         EditorGUILayout.Space(10f);
                         DrawCutsceneSection();
+                        break;
+                    case ContentTab.ProgrammableCutscenes:
+                        DrawProgrammableCutsceneSection();
                         break;
                 }
 
@@ -239,9 +253,13 @@ namespace RAXY.Narrative
                     ? $"{count} fullscreen"
                     : $"{count} banter";
             }
-            else
+            else if (_contentTab == ContentTab.TimelineCutscenes)
             {
                 countLabel = $"{_cutscenes.Count} cutscene prefabs";
+            }
+            else
+            {
+                countLabel = $"{_programmableCutscenes.Count} programmable cutscenes";
             }
 
             RaxyHubGui.DrawCountChip(countLabel);
@@ -373,6 +391,58 @@ namespace RAXY.Narrative
                 RaxyHubGui.DrawHint("Cutscene Play disabled until Narrative Hub is linked.");
         }
 
+        void DrawProgrammableCutsceneSection()
+        {
+            if (_programmableCutscenes.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No ProgrammableCutsceneSO assets found. Create one via Assets > Create > RAXY > Narrative > Programmable Cutscene.",
+                    MessageType.Info);
+                return;
+            }
+
+            bool hasHub = NarrativeHubManager.Instance != null;
+            foreach (var entry in _programmableCutscenes)
+            {
+                if (entry.Asset == null || !PassesProgrammableCutsceneFilter(entry))
+                    continue;
+
+                RaxyHubGui.BeginCard();
+                RaxyHubGui.DrawTitleRow(entry.DisplayName, "Asset");
+                RaxyHubGui.DrawMutedPath(entry.FolderPath);
+                EditorGUILayout.Space(4f);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (RaxyHubGui.SecondaryButton("Ping", 56f))
+                    {
+                        EditorGUIUtility.PingObject(entry.Asset);
+                        Selection.activeObject = entry.Asset;
+                    }
+
+                    using (new EditorGUI.DisabledScope(!hasHub))
+                    {
+                        if (RaxyHubGui.PrimaryButton("Play"))
+                            NarrativeHubManager.Instance.PlayProgrammableCutscene(entry.Asset);
+                    }
+                }
+                RaxyHubGui.EndCard();
+            }
+
+            if (!hasHub)
+                RaxyHubGui.DrawHint("Cutscene Play disabled until Narrative Hub is linked.");
+        }
+
+        bool PassesProgrammableCutsceneFilter(ProgrammableCutsceneEntry entry)
+        {
+            if (string.IsNullOrWhiteSpace(_filter))
+                return true;
+
+            string q = _filter.Trim();
+            return entry.DisplayName.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.FolderPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                   || entry.AssetPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         void DrawCutsceneRow(CutsceneEntry entry, bool hasHub)
         {
             var cutscene = entry.Cutscene;
@@ -460,6 +530,7 @@ namespace RAXY.Narrative
         {
             RefreshDialogues();
             RefreshCutscenes();
+            RefreshProgrammableCutscenes();
         }
 
         void RefreshDialogues()
@@ -532,6 +603,29 @@ namespace RAXY.Narrative
             }
 
             _cutscenes.Sort((a, b) =>
+                string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        void RefreshProgrammableCutscenes()
+        {
+            _programmableCutscenes.Clear();
+            foreach (string guid in AssetDatabase.FindAssets("t:ProgrammableCutsceneSO"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ProgrammableCutsceneSO>(path);
+                if (asset == null)
+                    continue;
+
+                _programmableCutscenes.Add(new ProgrammableCutsceneEntry
+                {
+                    Asset = asset,
+                    AssetPath = path,
+                    FolderPath = Path.GetDirectoryName(path)?.Replace('\\', '/') ?? path,
+                    DisplayName = asset.name
+                });
+            }
+
+            _programmableCutscenes.Sort((a, b) =>
                 string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
         }
 
