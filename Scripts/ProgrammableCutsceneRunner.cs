@@ -51,13 +51,26 @@ namespace RAXY.Narrative
                 ? new HashSet<ProgrammableCutsceneSO>(callPath) { cutscene }
                 : new HashSet<ProgrammableCutsceneSO> { cutscene };
 
-            await RunActionsInternalAsync(cutscene.actions, nextCallPath, ct);
+            bool trace = cutscene.name == "KirianFreed_Programmable";
+            if (trace)
+                Debug.Log($"[CutsceneDebug] START {cutscene.name}; actions={cutscene.actions?.Count ?? 0}; frame={Time.frameCount}.", cutscene);
+
+            try
+            {
+                await RunActionsInternalAsync(cutscene.actions, nextCallPath, ct, trace);
+            }
+            finally
+            {
+                if (trace)
+                    Debug.Log($"[CutsceneDebug] END {cutscene.name}; canceled={ct.IsCancellationRequested}; frame={Time.frameCount}.", cutscene);
+            }
         }
 
         internal static async UniTask RunActionsInternalAsync(
             IReadOnlyList<ISequenceable> actions,
             HashSet<ProgrammableCutsceneSO> callPath,
-            CancellationToken ct = default)
+            CancellationToken ct = default,
+            bool trace = false)
         {
             if (actions == null || actions.Count == 0)
                 return;
@@ -78,7 +91,9 @@ namespace RAXY.Narrative
                         continue;
                     }
 
-                    UniTask actionTask = ExecuteActionWithContextAsync(action, callPath, ct);
+                    UniTask actionTask = trace
+                        ? TraceActionAsync(action, i, actions.Count, callPath, ct)
+                        : ExecuteActionWithContextAsync(action, callPath, ct);
 
                     if (i < actions.Count - 1 && !action.OverrideNextActionTime)
                     {
@@ -120,6 +135,26 @@ namespace RAXY.Narrative
             if (caughtException != null)
             {
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(caughtException).Throw();
+            }
+        }
+
+        static async UniTask TraceActionAsync(
+            ISequenceable action,
+            int index,
+            int count,
+            HashSet<ProgrammableCutsceneSO> callPath,
+            CancellationToken ct)
+        {
+            Debug.Log($"[CutsceneDebug] Action {index + 1}/{count} START {action.GetType().Name} ({action.Label}); overrideNext={action.OverrideNextActionTime}; frame={Time.frameCount}.");
+            try
+            {
+                await ExecuteActionWithContextAsync(action, callPath, ct);
+                Debug.Log($"[CutsceneDebug] Action {index + 1}/{count} END {action.GetType().Name}; canceled={ct.IsCancellationRequested}; frame={Time.frameCount}.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[CutsceneDebug] Action {index + 1}/{count} FAILED {action.GetType().Name}: {ex}");
+                throw;
             }
         }
 

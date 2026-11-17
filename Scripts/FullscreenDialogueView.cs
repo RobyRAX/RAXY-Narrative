@@ -142,6 +142,10 @@ namespace RAXY.Narrative
             if (data == null)
                 return;
 
+            bool trace = collectionId == "quest_4_end_1" || collectionId == "quest_4_start_2";
+            if (trace)
+                Debug.Log($"[CutsceneDebug/Dialogue] START collection={collectionId}; replacingPrevious={_playCts != null && !_playCts.IsCancellationRequested}; frame={Time.frameCount}.", this);
+
             // Batalkan playthrough sebelumnya biar loop lama berhenti menyentuh state bersama
             // (_advanceRequested), yang bikin auto next/advance terasa "gk ke reset".
             _playCts?.Cancel();
@@ -162,6 +166,7 @@ namespace RAXY.Narrative
             }
 
             bool started = false;
+            string completion = "canceled";
             try
             {
                 started = true;
@@ -178,10 +183,15 @@ namespace RAXY.Narrative
                 var lines = collection.DialogueLineWithPortraits;
                 if (lines != null)
                 {
+                    int lineIndex = 0;
                     foreach (var line in lines)
                     {
+                        lineIndex++;
                         if (line == null)
                             continue;
+
+                        if (trace)
+                            Debug.Log($"[CutsceneDebug/Dialogue] Line {lineIndex}/{lines.Count} START collection={collectionId}; autoNext={line.UseAutoNext}; autoNextDuration={line.autoNextDuration}; frame={Time.frameCount}.", this);
 
                         ApplyPortraitStates(line.portraitSetting_OnEnter.states);
 
@@ -198,6 +208,8 @@ namespace RAXY.Narrative
                             dialogueLineTmp.text = text;
 
                         await WaitLineAsync(line, token);
+                        if (trace)
+                            Debug.Log($"[CutsceneDebug/Dialogue] Line {lineIndex}/{lines.Count} END collection={collectionId}; frame={Time.frameCount}.", this);
                     }
                 }
 
@@ -209,13 +221,17 @@ namespace RAXY.Narrative
                     return;
 
                 await EndDialogueAsync(token);
+                completion = "completed";
             }
             catch (System.OperationCanceledException)
             {
                 // Handoff / external cancel — biarkan finally fire OnDialogueEnd untuk collection ini.
+                completion = "canceled by new dialogue or external token";
             }
             finally
             {
+                if (trace)
+                    Debug.Log($"[CutsceneDebug/Dialogue] END collection={collectionId}; result={completion}; tokenCanceled={token.IsCancellationRequested}; frame={Time.frameCount}.", this);
                 if (started)
                     OnDialogueEnd?.Invoke(data, collectionId);
             }
