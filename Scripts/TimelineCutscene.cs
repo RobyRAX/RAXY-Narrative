@@ -640,6 +640,26 @@ namespace RAXY.Narrative
 
                     switch (entry.trackBindType)
                     {
+                        case TrackBindType.Activation:
+                            if (track is not ActivationTrack)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] Track '{entry.trackName}' bukan ActivationTrack.",
+                                    binder);
+                                break;
+                            }
+
+                            if (binder.activationTarget == null)
+                            {
+                                Debug.LogWarning(
+                                    $"[TimelineCutscene] TrackBinder untuk '{entry.trackName}' tidak punya Activation Target.",
+                                    binder);
+                                break;
+                            }
+
+                            PlayableDirector.SetGenericBinding(track, binder.activationTarget);
+                            break;
+
                         case TrackBindType.Animation:
                             if (track is not AnimationTrack)
                             {

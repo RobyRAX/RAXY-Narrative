@@ -15,6 +15,10 @@ namespace RAXY.Narrative
         public Animator animator;
 
         [TitleGroup("Track Ref")]
+        [ShowIf("@IsActivationTrackBind")]
+        public GameObject activationTarget;
+
+        [TitleGroup("Track Ref")]
         [ShowIf("@IsCinemachineBrainTrackBind")]
         public CinemachineBrain cinemachineBrain;
 
@@ -91,6 +95,23 @@ namespace RAXY.Narrative
                 }
 
                 return containAnimation;
+            }
+        }
+
+        public bool IsActivationTrackBind
+        {
+            get
+            {
+                if (trackBinds == null)
+                    return false;
+
+                foreach (var entry in trackBinds)
+                {
+                    if (entry.trackBindType == TrackBindType.Activation)
+                        return true;
+                }
+
+                return false;
             }
         }
 
@@ -270,6 +291,7 @@ namespace RAXY.Narrative
         Animation,
         CinemachineBrain,
         ColorOverlayManager,
-        TextOverlayManager
+        TextOverlayManager,
+        Activation
     }
 }
