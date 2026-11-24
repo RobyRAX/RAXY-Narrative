@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using TMPro;
@@ -61,14 +62,33 @@ namespace RAXY.Narrative
             OnSetup?.Invoke();
         }
 
-        public void BindClick(UnityAction onClick)
+        public void BindClick(UnityAction onClick) => BindClick(onClick, 0f);
+
+        internal void BindClick(UnityAction onClick, float inputDelay)
         {
             if (button == null)
                 return;
 
             button.onClick.RemoveAllListeners();
-            if (onClick != null)
-                button.onClick.AddListener(onClick);
+            if (onClick == null)
+                return;
+
+            button.onClick.AddListener(onClick);
+            if (inputDelay > 0f && button.enabled)
+                DelayInputAsync(inputDelay).Forget();
+        }
+
+        async UniTask DelayInputAsync(float seconds)
+        {
+            // A press that starts during the delay must not select the choice on release.
+            button.enabled = false;
+            bool canceled = await UniTask.Delay(
+                TimeSpan.FromSeconds(seconds),
+                ignoreTimeScale: true,
+                cancellationToken: this.GetCancellationTokenOnDestroy()).SuppressCancellationThrow();
+
+            if (!canceled && button != null)
+                button.enabled = true;
         }
 
         void OnDestroy()

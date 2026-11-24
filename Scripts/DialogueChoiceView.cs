@@ -21,6 +21,10 @@ namespace RAXY.Narrative
         [SerializeField]
         DialogueChoiceButton choiceBtnPref;
 
+        [TitleGroup("Input")]
+        [SerializeField, Min(0f)]
+        float choiceInputDelay = 1f;
+
         [TitleGroup("Runtime")]
         [ShowInInspector]
         List<DialogueChoiceButton> spawnedChoices = new();
@@ -66,7 +70,7 @@ namespace RAXY.Narrative
                 int index = i;
                 var btn = Instantiate(choiceBtnPref, choiceContainer);
                 btn.Setup(choiceEntries[i], index);
-                btn.BindClick(() => HandleChoiceSelected(index));
+                btn.BindClick(() => HandleChoiceSelected(index), choiceInputDelay);
                 spawnedChoices.Add(btn);
             }
         }
@@ -87,7 +91,7 @@ namespace RAXY.Narrative
                 int index = i;
                 var btn = Instantiate(choiceBtnPref, choiceContainer);
                 await btn.SetupAsync(choiceEntries[i], index);
-                btn.BindClick(() => HandleChoiceSelected(index));
+                btn.BindClick(() => HandleChoiceSelected(index), choiceInputDelay);
                 spawnedChoices.Add(btn);
             }
         }
