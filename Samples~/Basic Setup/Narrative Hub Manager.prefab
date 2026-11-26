@@ -147,6 +147,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4598476283936163292}
   - component: {fileID: 1496555807030041829}
+  - component: {fileID: 8237465019283746501}
   m_Layer: 0
   m_Name: Narrative Hub Manager
   m_TagString: Untagged
@@ -223,6 +224,20 @@ MonoBehaviour:
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
+--- !u!114 &8237465019283746501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 302460924271079911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 630b626583b35614498a4bf20b9845d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RAXY.Narrative::RAXY.Narrative.BarkDialogueManager
+  collectionCharDelay: 0.03
+  lineEndDelay: 0.5
 --- !u!1 &603591809183665605
 GameObject:
   m_ObjectHideFlags: 0

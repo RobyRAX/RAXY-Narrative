@@ -46,7 +46,8 @@ namespace RAXY.Narrative
             FullscreenDialogue = 0,
             BanterDialogue = 1,
             TimelineCutscenes = 2,
-            ProgrammableCutscenes = 3
+            ProgrammableCutscenes = 3,
+            BarkBubbles = 4
         }
 
         static readonly string[] ContentTabLabels =
@@ -54,7 +55,8 @@ namespace RAXY.Narrative
             "Fullscreen Dialogue",
             "Banter Dialogue",
             "Timeline Cutscenes",
-            "Programmable Cutscenes"
+            "Programmable Cutscenes",
+            "Bark Bubbles"
         };
 
         readonly List<DialogueEntry> _dialogues = new();
@@ -66,6 +68,7 @@ namespace RAXY.Narrative
         ContentTab _contentTab = ContentTab.FullscreenDialogue;
         Vector2 _scroll;
         string _filter = "";
+        string _newBarkBubbleId = "";
 
         public string Id => "narrative";
         public string DisplayName => "Narrative";
@@ -119,6 +122,9 @@ namespace RAXY.Narrative
                         break;
                     case ContentTab.ProgrammableCutscenes:
                         DrawProgrammableCutsceneSection();
+                        break;
+                    case ContentTab.BarkBubbles:
+                        DrawBarkBubblesSection();
                         break;
                 }
 
@@ -256,6 +262,12 @@ namespace RAXY.Narrative
             else if (_contentTab == ContentTab.TimelineCutscenes)
             {
                 countLabel = $"{_cutscenes.Count} cutscene prefabs";
+            }
+            else if (_contentTab == ContentTab.BarkBubbles)
+            {
+                var settings = NarrativeEditorSettings.instance;
+                settings.EnsureDefaultBarkBubbleIds();
+                countLabel = $"{settings.BarkBubbleIds.Count} bubble ids";
             }
             else
             {
@@ -430,6 +442,106 @@ namespace RAXY.Narrative
 
             if (!hasHub)
                 RaxyHubGui.DrawHint("Cutscene Play disabled until Narrative Hub is linked.");
+        }
+
+        void DrawBarkBubblesSection()
+        {
+            var settings = NarrativeEditorSettings.instance;
+            settings.EnsureDefaultBarkBubbleIds();
+
+            RaxyHubGui.BeginCard();
+            EditorGUILayout.LabelField("Registered Bark Bubble IDs", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Registered IDs appear in the bubbleId dropdown (...) on BarkBubble, BarkDialogueTrigger, and PlayBarkDialogue. Custom IDs can still be typed directly.",
+                MessageType.Info);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _newBarkBubbleId = EditorGUILayout.TextField("New ID", _newBarkBubbleId ?? "");
+                if (RaxyHubGui.PrimaryButton("Add", 70f))
+                {
+                    if (settings.AddBarkBubbleId(_newBarkBubbleId))
+                        _newBarkBubbleId = "";
+                    else
+                        Debug.LogWarning("[NarrativeHub] Could not add Bark Bubble ID (empty or duplicate).");
+                }
+            }
+
+            EditorGUILayout.Space(6f);
+
+            var ids = settings.BarkBubbleIds;
+            string query = string.IsNullOrWhiteSpace(_filter) ? null : _filter.Trim();
+            int removeIndex = -1;
+
+            for (int i = 0; i < ids.Count; i++)
+            {
+                string currentId = ids[i] ?? "";
+                if (query != null && currentId.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUI.BeginChangeCheck();
+                    string edited = EditorGUILayout.DelayedTextField(currentId);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        if (!settings.SetBarkBubbleIdAt(i, edited))
+                            Debug.LogWarning($"[NarrativeHub] Could not rename Bark Bubble ID '{currentId}' to '{edited}' (empty or duplicate).");
+                    }
+
+                    if (RaxyHubGui.SecondaryButton("Remove", 72f))
+                        removeIndex = i;
+                }
+            }
+
+            if (removeIndex >= 0)
+                settings.RemoveBarkBubbleIdAt(removeIndex);
+
+            RaxyHubGui.EndCard();
+
+            EditorGUILayout.Space(8f);
+
+            RaxyHubGui.BeginCard();
+            EditorGUILayout.LabelField("Runtime Registered Bubbles", EditorStyles.boldLabel);
+
+            var barkManager = BarkDialogueManager.Instance;
+            if (barkManager == null)
+            {
+                RaxyHubGui.DrawStatusBanner(
+                    false,
+                    "BarkDialogueManager not linked",
+                    "Enter Play Mode with a BarkDialogueManager in the scene to inspect active registered bubbles.");
+            }
+            else
+            {
+                RaxyHubGui.DrawStatusBanner(
+                    true,
+                    "Runtime connected",
+                    $"{barkManager.RegisteredBubbles.Count} active bubble(s) registered.");
+
+                foreach (var pair in barkManager.RegisteredBubbles)
+                {
+                    if (pair.Value == null)
+                        continue;
+
+                    if (query != null &&
+                        pair.Key.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
+                        pair.Value.name.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField($"{pair.Key}  ->  {pair.Value.name}");
+                        if (RaxyHubGui.SecondaryButton("Ping", 56f))
+                        {
+                            EditorGUIUtility.PingObject(pair.Value);
+                            Selection.activeGameObject = pair.Value.gameObject;
+                        }
+                    }
+                }
+            }
+
+            RaxyHubGui.EndCard();
         }
 
         bool PassesProgrammableCutsceneFilter(ProgrammableCutsceneEntry entry)
